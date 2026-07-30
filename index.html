@@ -923,7 +923,9 @@ function updateQiblaGuide() {
 
     const cx = w/2, cy = h/2;
     const radius = 120;
+    const okUzunluk = radius + 15; // daireyi taşacak
 
+    // Yön etiketleri (N, E, S, W) - deviceHeading'e göre döndürülmüş
     const sunAz = d.sunAz;
     let deviceHeading = (sunRel - sunAz + 360) % 360;
 
@@ -940,57 +942,78 @@ function updateQiblaGuide() {
     for (let y of yonler) {
         const angleDeg = (y.angle + deviceHeading) % 360;
         const angleRad = toRad(angleDeg);
-        const x = cx + (radius + 15) * Math.sin(angleRad);
-        const yPos = cy - (radius + 15) * Math.cos(angleRad);
+        const x = cx + (radius + 18) * Math.sin(angleRad);
+        const yPos = cy - (radius + 18) * Math.cos(angleRad);
         ctx.fillText(y.label, x, yPos);
     }
 
+    // Dış halka
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, 2*Math.PI);
     ctx.strokeStyle = '#475569';
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    const sunAngleRad = toRad(sunRel);
-    const sunX = cx + radius * 0.8 * Math.sin(sunAngleRad);
-    const sunY = cy - radius * 0.8 * Math.cos(sunAngleRad);
-    ctx.beginPath();
-    ctx.arc(sunX, sunY, 20, 0, 2*Math.PI);
-    ctx.fillStyle = 'rgba(255, 215, 0, 0.8)';
-    ctx.fill();
-    ctx.strokeStyle = '#ffcc00';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.fillStyle = 'white';
-    ctx.font = '14px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('☀️', sunX, sunY - 35);
+    // ----- GÜNEŞ OKU (SARI) -----
+    const gunesRad = toRad(sunRel);
+    const gunesX = cx + okUzunluk * Math.sin(gunesRad);
+    const gunesY = cy - okUzunluk * Math.cos(gunesRad);
 
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(gunesX, gunesY);
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Ok başı
+    const okBoyutu = 14;
+    const gunesOkX = gunesX;
+    const gunesOkY = gunesY;
+    ctx.beginPath();
+    ctx.moveTo(gunesOkX, gunesOkY);
+    ctx.lineTo(gunesOkX - okBoyutu * Math.cos(gunesRad) - okBoyutu/2 * Math.sin(gunesRad),
+               gunesOkY - okBoyutu * Math.sin(gunesRad) + okBoyutu/2 * Math.cos(gunesRad));
+    ctx.lineTo(gunesOkX - okBoyutu * Math.cos(gunesRad) + okBoyutu/2 * Math.sin(gunesRad),
+               gunesOkY - okBoyutu * Math.sin(gunesRad) - okBoyutu/2 * Math.cos(gunesRad));
+    ctx.closePath();
+    ctx.fillStyle = '#facc15';
+    ctx.fill();
+
+    // ----- KIBLE OKU (YEŞİL) -----
     const qiblaAz = d.qiblaAz;
     let diff = (qiblaAz - sunAz + 360) % 360;
     let qiblaRel = (sunRel + diff) % 360;
-    const qiblaAngleRad = toRad(qiblaRel);
-    const qiblaX = cx + radius * 0.7 * Math.sin(qiblaAngleRad);
-    const qiblaY = cy - radius * 0.7 * Math.cos(qiblaAngleRad);
-    ctx.beginPath();
-    ctx.moveTo(qiblaX, qiblaY - 20);
-    ctx.lineTo(qiblaX - 15, qiblaY + 10);
-    ctx.lineTo(qiblaX + 15, qiblaY + 10);
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(0, 255, 0, 0.9)';
-    ctx.fill();
-    ctx.fillStyle = 'lime';
-    ctx.font = '16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🕋', qiblaX, qiblaY + 35);
+    const kibleRad = toRad(qiblaRel);
+    const kibleX = cx + okUzunluk * Math.sin(kibleRad);
+    const kibleY = cy - okUzunluk * Math.cos(kibleRad);
 
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(kibleX, kibleY);
+    ctx.strokeStyle = '#4ade80';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    const kibleOkX = kibleX;
+    const kibleOkY = kibleY;
+    ctx.beginPath();
+    ctx.moveTo(kibleOkX, kibleOkY);
+    ctx.lineTo(kibleOkX - okBoyutu * Math.cos(kibleRad) - okBoyutu/2 * Math.sin(kibleRad),
+               kibleOkY - okBoyutu * Math.sin(kibleRad) + okBoyutu/2 * Math.cos(kibleRad));
+    ctx.lineTo(kibleOkX - okBoyutu * Math.cos(kibleRad) + okBoyutu/2 * Math.sin(kibleRad),
+               kibleOkY - okBoyutu * Math.sin(kibleRad) - okBoyutu/2 * Math.cos(kibleRad));
+    ctx.closePath();
+    ctx.fillStyle = '#4ade80';
+    ctx.fill();
+
+    // Merkez nokta
     ctx.beginPath();
     ctx.arc(cx, cy, 4, 0, 2*Math.PI);
     ctx.fillStyle = 'white';
     ctx.fill();
 
+    // Farkı gösteren metin
     let diffUser = (sunRel - qiblaRel + 360) % 360;
     if (diffUser > 180) diffUser -= 360;
     const absDiff = Math.abs(diffUser);
@@ -999,10 +1022,13 @@ function updateQiblaGuide() {
     if (absDiff < 2) {
         instruction.textContent = '✅ Güneş tam Kıble yönünde!';
     } else {
-        instruction.textContent = `Sarı daireyi güneşe sürükleyin. (${absDiff.toFixed(0)}° ${yon} dönün)`;
+        instruction.textContent = `Sarı oku güneşe sürükleyin. (${absDiff.toFixed(0)}° ${yon} dönün)`;
     }
     window.guideSpeech = `${absDiff.toFixed(0)} derece ${yon}. Güneş'i referans alarak Kıble'ye yönelin.`;
 }
+
+    
+
 
 function speakGuide() {
     if (window.guideSpeech && window.speechSynthesis) {
