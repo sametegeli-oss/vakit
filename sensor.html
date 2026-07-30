@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Asistan Sensör</title>
     <style>
-        /* (stil aynı, sadece eklenen slider stilleri) */
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
         body { background:#0b0e1a; color:#f0f4ff; min-height:100vh; display:flex; justify-content:center; align-items:center; padding:16px; }
         #app { max-width:420px; width:100%; background:linear-gradient(145deg,#131a2b,#1a2338); border-radius:40px; padding:24px 20px 30px; box-shadow:0 25px 60px rgba(0,0,0,0.8); border:1px solid rgba(255,255,255,0.05); min-height:700px; }
@@ -46,17 +45,16 @@
         .footer-item span { display:block; font-size:22px; }
         .status-msg { font-size:14px; color:#9aafdf; padding:8px; border-radius:12px; background:#10182a; text-align:center; }
         .highlight { color:#facc15; font-weight:600; }
-        /* debug panel */
         .debug-panel { background:#0a0f1a; padding:14px 16px; border-radius:16px; font-family:'Courier New',monospace; font-size:14px; color:#8af; border:1px solid #2a3a5a; text-align:left; line-height:1.7; }
         .debug-panel span { color:#fff; font-weight:600; }
         .debug-panel .val { color:#facc15; }
         .status-ok { color:#4ade80; }
         .status-err { color:#f87171; }
-        /* slider stili */
-        .slider-container { margin:8px 0; }
-        .slider-container label { display:flex; justify-content:space-between; font-size:14px; color:#aab9f0; }
-        .slider-container input[type="range"] { width:100%; margin:6px 0; accent-color:#4a6af5; background:#262f4a; height:4px; border-radius:4px; }
-        .slider-container .value-badge { background:#1f2942; padding:2px 12px; border-radius:20px; font-size:14px; }
+        .calibration-box { background:#0f1629; border-radius:20px; padding:16px; border:1px solid #2a3a5a; }
+        .calibration-box .cal-row { display:flex; justify-content:space-between; align-items:center; margin:6px 0; }
+        .calibration-box .cal-label { font-size:14px; color:#aab9f0; }
+        .calibration-box .cal-value { font-size:18px; font-weight:700; color:#facc15; }
+        .calibration-box .btn { padding:10px; font-size:14px; width:auto; flex:1; margin:0 4px; }
     </style>
 </head>
 <body>
@@ -66,7 +64,7 @@
     <div id="page-home" class="page active">
         <div class="header">
             <h1>📡 Asistan Sensör</h1>
-            <span class="icon-badge">v2.2</span>
+            <span class="icon-badge">v2.3</span>
         </div>
         <p style="color:#8899bb; margin-bottom:4px; font-size:14px;">Telefonunuzun tüm sensörleri tek uygulamada</p>
         <div class="menu-grid">
@@ -108,7 +106,7 @@
         </div>
     </div>
 
-    <!-- ========== NAMAZ (AYARLI + MANUEL BAŞLAT) ========== -->
+    <!-- ========== NAMAZ (KALİBRASYONLU) ========== -->
     <div id="page-namaz" class="page">
         <div class="header">
             <button class="back-btn" onclick="showPage('home')">‹</button>
@@ -124,7 +122,7 @@
             <div style="margin-top:8px; font-size:14px; color:#7a8fc0;">Eğim: <span id="namaz-tilt">0</span>°</div>
         </div>
 
-        <!-- SENSÖR BAŞLAT BUTONU (manuel) -->
+        <!-- SENSÖR BAŞLAT BUTONU -->
         <button class="btn btn-primary" id="sensor-start-btn" onclick="manualStartSensor()">
             🔄 Sensörü Başlat / İzni Yenile
         </button>
@@ -138,38 +136,30 @@
             <div>🔵 Sensör Durumu: <span id="debug-state" class="status-err">Başlatılmadı</span></div>
         </div>
 
-        <!-- AYARLAR: Eşik Açıları -->
-        <div style="background:#0f1629; border-radius:20px; padding:16px; border:1px solid #2a3a5a;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="font-weight:600; color:#aab9f0;">⚙️ Eşik Açıları (derece)</span>
-                <span style="font-size:12px; color:#7a8fc0;">Toleranslı</span>
+        <!-- === KALİBRASYON BÖLÜMÜ === -->
+        <div class="calibration-box">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span style="font-weight:600; color:#aab9f0;">⚙️ Kalibrasyon</span>
+                <span style="font-size:12px; color:#7a8fc0;">Kendi duruşuna göre ayarla</span>
             </div>
-            <!-- Rükû Başlangıç Açısı -->
-            <div class="slider-container">
-                <label>
-                    <span>Rükû başlangıcı (Kıyam→Rükû)</span>
-                    <span class="value-badge" id="ruku-threshold-label">30°</span>
-                </label>
-                <input type="range" id="ruku-threshold" min="15" max="50" value="30" step="1"
-                       oninput="updateThresholds()">
-                <div style="display:flex; justify-content:space-between; font-size:11px; color:#5f73a1;">
-                    <span>15°</span><span>50°</span>
-                </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center;">
+                <button class="btn btn-success" onclick="calibrate('kiyam')" style="flex:1; min-width:80px;">🧍 Kıyam</button>
+                <button class="btn btn-primary" onclick="calibrate('ruku')" style="flex:1; min-width:80px;">🙇 Rükû</button>
+                <button class="btn btn-secondary" onclick="calibrate('secde')" style="flex:1; min-width:80px;">🕌 Secde</button>
             </div>
-            <!-- Secde Başlangıç Açısı -->
-            <div class="slider-container">
-                <label>
-                    <span>Secde başlangıcı (Rükû→Secde)</span>
-                    <span class="value-badge" id="secde-threshold-label">65°</span>
-                </label>
-                <input type="range" id="secde-threshold" min="45" max="80" value="65" step="1"
-                       oninput="updateThresholds()">
-                <div style="display:flex; justify-content:space-between; font-size:11px; color:#5f73a1;">
-                    <span>45°</span><span>80°</span>
-                </div>
+            <div class="cal-row"><span class="cal-label">Kıyam açısı:</span><span class="cal-value" id="cal-kiyam">--°</span></div>
+            <div class="cal-row"><span class="cal-label">Rükû açısı:</span><span class="cal-value" id="cal-ruku">--°</span></div>
+            <div class="cal-row"><span class="cal-label">Secde açısı:</span><span class="cal-value" id="cal-secde">--°</span></div>
+            <div style="display:flex; gap:6px; margin-top:6px;">
+                <button class="btn btn-primary" onclick="applyCalibration()" style="flex:2;">✅ Uygula</button>
+                <button class="btn btn-secondary" onclick="resetCalibration()" style="flex:1;">↺ Sıfırla</button>
             </div>
-            <div style="font-size:12px; color:#7a8fc0; margin-top:4px;">
-                💡 Telefonu dik tut → açı 0-...°, eğ → Rükû, yatır → Secde.
+            <div style="margin-top:8px; font-size:13px; color:#7a8fc0; text-align:center;">
+                <span id="cal-status">Henüz kalibrasyon yapılmadı. Pozisyon alıp butona basın.</span>
+            </div>
+            <div style="display:flex; gap:12px; margin-top:6px; font-size:13px; justify-content:center;">
+                <span>Rükû eşiği: <strong id="ruku-eşik">30°</strong></span>
+                <span>Secde eşiği: <strong id="secde-eşik">65°</strong></span>
             </div>
         </div>
 
@@ -182,14 +172,114 @@
         </div>
         <button class="btn btn-danger" onclick="resetNamaz()">🔄 Sıfırla</button>
         <div class="status-msg">
-            📌 Telefonu <strong>dik tutun</strong> (ekran size dönük).<br>
-            Eğin → Rükû, Yatırın → Secde. Eşikleri yukarıdan ayarlayın.
+            📌 Önce kalibrasyon yapın: <strong>Kıyam</strong> → <strong>Rükû</strong> → <strong>Secde</strong> pozisyonlarını sırayla kaydedip "Uygula"ya basın.<br>
+            Ardından namaz hareketleriniz otomatik algılanacak.
         </div>
     </div>
 
-    <!-- ========== DİĞER MODÜLLER (Aynı) ========== -->
-    <!-- (Aktivite, Kat, Nefes, Alarm, Raporlar - öncekiyle aynı, kısaltmak için burada tekrar etmiyorum, ama tam kodda yer alıyor) -->
-    <!-- Buraya activity, floor, breath, alarm, reports sayfalarını ekleyin. Aşağıda eksiksiz kod verilecektir. -->
+    <!-- ========== DİĞER MODÜLLER ========== -->
+    <!-- Aktivite -->
+    <div id="page-activity" class="page">
+        <div class="header">
+            <button class="back-btn" onclick="showPage('home')">‹</button>
+            <h1 style="font-size:20px;">🚶 Aktivite Tanıma</h1>
+            <span style="width:30px;"></span>
+        </div>
+        <div class="sensor-box" style="background:#1a2a3a;">
+            <div style="font-size:18px; color:#aab9f0;">Anlık Durum</div>
+            <div id="activity-status" style="font-size:40px; font-weight:700; color:#4ade80;">🟢 Oturma</div>
+            <div class="progress-bar" style="margin-top:18px;"><div class="progress-fill" id="activity-bar" style="width:10%;"></div></div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:#6a7fa8; margin-top:4px;">
+                <span>Düşük</span><span>Orta</span><span>Yüksek</span>
+            </div>
+        </div>
+        <div class="stat-grid">
+            <div class="stat-card"><div class="label">Adım</div><div class="value" id="activity-steps">0</div></div>
+            <div class="stat-card"><div class="label">Kalori (tahmini)</div><div class="value" id="activity-cal">0</div><div class="sub">kcal</div></div>
+        </div>
+        <button class="btn btn-secondary" onclick="resetActivity()" style="background:#2a3457;">Sıfırla</button>
+    </div>
+
+    <!-- Kat Sayacı -->
+    <div id="page-floor" class="page">
+        <div class="header">
+            <button class="back-btn" onclick="showPage('home')">‹</button>
+            <h1 style="font-size:20px;">🏢 Kat Sayacı</h1>
+            <span style="width:30px;"></span>
+        </div>
+        <div class="sensor-box" style="background:#1c263f;">
+            <div style="font-size:16px; color:#aab9f0;">Mevcut Kat</div>
+            <div><span class="big-number" id="floor-current">0</span><span class="unit">. kat</span></div>
+            <div style="margin-top:6px; font-size:14px; color:#7a8fc0;">Bugün <span id="floor-today">0</span> kat çıkıldı</div>
+            <div class="progress-bar"><div class="progress-fill" id="floor-bar" style="width:0%;"></div></div>
+        </div>
+        <div class="row">
+            <button class="btn btn-success" onclick="addFloor(1)">⬆ +1 Kat</button>
+            <button class="btn btn-danger" onclick="addFloor(-1)">⬇ -1 Kat</button>
+        </div>
+        <button class="btn btn-primary" onclick="simulateFloor()">🎲 Otomatik Algıla (Simülasyon)</button>
+        <div class="status-msg">⚠️ Web ortamında barometre desteği yok. Mobil uygulamada otomatik çalışır.</div>
+    </div>
+
+    <!-- Nefes -->
+    <div id="page-breath" class="page">
+        <div class="header">
+            <button class="back-btn" onclick="showPage('home')">‹</button>
+            <h1 style="font-size:20px;">🫁 Nefes Analizi</h1>
+            <span style="width:30px;"></span>
+        </div>
+        <div class="sensor-box" style="background:#162032;">
+            <div id="breath-phase" style="font-size:42px; font-weight:700; color:#60a5fa;">😮‍💨 Nefes Al</div>
+            <div style="font-size:14px; color:#8899cc;">Ses Şiddeti</div>
+            <div class="progress-bar"><div class="progress-fill" id="breath-bar" style="width:5%; background:linear-gradient(90deg,#3b82f6,#a855f7);"></div></div>
+            <div class="stat-grid" style="margin-top:14px;">
+                <div class="stat-card"><div class="label">Dakika Solunum</div><div class="value" id="breath-rate">0</div><div class="sub">/dk</div></div>
+                <div class="stat-card"><div class="label">Döngü Sayısı</div><div class="value" id="breath-count">0</div></div>
+            </div>
+        </div>
+        <button class="btn btn-primary" id="mic-btn" onclick="toggleMic()">🎙 Mikrofonu Başlat</button>
+        <div class="status-msg" id="mic-status">🔇 Mikrofon kapalı. Analiz için başlatın.</div>
+    </div>
+
+    <!-- Hırsız Alarmı -->
+    <div id="page-alarm" class="page">
+        <div class="header">
+            <button class="back-btn" onclick="showPage('home')">‹</button>
+            <h1 style="font-size:20px;">🔒 Hırsız Alarmı</h1>
+            <span style="width:30px;"></span>
+        </div>
+        <div class="sensor-box" id="alarm-box" style="background:#1f1f2e; transition:0.3s;">
+            <div style="font-size:16px; color:#aab9f0;">Durum</div>
+            <div id="alarm-status" style="font-size:28px; font-weight:700; color:#4ade80;">✅ Güvende</div>
+            <div style="margin-top:10px; font-size:14px; color:#7a8fc0;">Sensitivite: <span id="alarm-sensitivity">Orta</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="alarm-bar" style="width:0%; background:#facc15;"></div></div>
+        </div>
+        <div class="row">
+            <button class="btn btn-danger" onclick="triggerAlarmTest()">🔊 Test Alarm</button>
+            <button class="btn btn-secondary" onclick="resetAlarm()" style="background:#2a3457;">Sessize Al</button>
+        </div>
+        <div class="status-msg">📌 Telefonu düz zemine koyun. Ani hareket algılanırsa alarm çalar.</div>
+    </div>
+
+    <!-- Raporlar -->
+    <div id="page-reports" class="page">
+        <div class="header">
+            <button class="back-btn" onclick="showPage('home')">‹</button>
+            <h1 style="font-size:20px;">📊 Günlük Rapor</h1>
+            <span style="width:30px;"></span>
+        </div>
+        <div class="stat-grid">
+            <div class="stat-card"><div class="label">Toplam Adım</div><div class="value" id="report-steps">0</div></div>
+            <div class="stat-card"><div class="label">Namaz Süresi</div><div class="value" id="report-namaz">0</div><div class="sub">dk</div></div>
+            <div class="stat-card"><div class="label">Çıkılan Kat</div><div class="value" id="report-floors">0</div></div>
+            <div class="stat-card"><div class="label">Nefes (dk)</div><div class="value" id="report-breath">0</div></div>
+        </div>
+        <div style="background:#151e32; border-radius:20px; padding:20px; margin-top:10px;">
+            <p style="color:#8899cc;">🧠 <span class="highlight">Yapay Zeka Yorumu</span></p>
+            <p id="ai-comment" style="color:#d0ddff; font-size:15px;">Bugün hareketliliğin normal seviyede.</p>
+        </div>
+        <button class="btn btn-secondary" onclick="refreshReports()" style="background:#2a3457;">🔄 Raporu Yenile</button>
+    </div>
 
 </div>
 
@@ -202,10 +292,12 @@
     let namazRekat = 0, namazRuku = 0, namazSecde = 0, namazSure = 0;
     let namazTimer = null, lastPos = 'kıyam';
     let sensorActive = false;
+    let currentAngle = 0; // anlık hesaplanan açı
 
-    // Eşik değerleri (varsayılan)
-    let RUKU_THRESHOLD = 30;   // Kıyam → Rükû geçiş açısı
-    let SECDE_THRESHOLD = 65;  // Rükû → Secde geçiş açısı
+    // Kalibrasyon değişkenleri
+    let kiyamAngle = null, rukuAngle = null, secdeAngle = null;
+    let RUKU_THRESHOLD = 30;
+    let SECDE_THRESHOLD = 65;
 
     // ================= SAYFA GEÇİSİ =================
     function showPage(id) {
@@ -221,32 +313,20 @@
         if (id === 'breath') { /* mikrofon butonla */ }
     }
 
-    // ================= NAMAZ (AYARLI + MANUEL) =================
+    // ================= NAMAZ (KALİBRASYONLU) =================
     let namazListener = false;
 
-    // Manuel başlatma fonksiyonu (butonla çağrılır)
     function manualStartSensor() {
         const stateEl = document.getElementById('debug-state');
         if (window.DeviceMotionEvent) {
-            // iOS 13+ için permission iste
             if (typeof DeviceMotionEvent.requestPermission === 'function') {
                 DeviceMotionEvent.requestPermission()
                     .then(state => {
-                        if (state === 'granted') {
-                            startListening();
-                        } else {
-                            stateEl.innerHTML = '❌ İzin reddedildi';
-                            stateEl.className = 'status-err';
-                        }
+                        if (state === 'granted') { startListening(); }
+                        else { stateEl.innerHTML = '❌ İzin reddedildi'; stateEl.className = 'status-err'; }
                     })
-                    .catch(err => {
-                        stateEl.innerHTML = '⚠️ Hata: ' + err.message;
-                        stateEl.className = 'status-err';
-                    });
-            } else {
-                // Android / diğer
-                startListening();
-            }
+                    .catch(err => { stateEl.innerHTML = '⚠️ Hata: ' + err.message; stateEl.className = 'status-err'; });
+            } else { startListening(); }
         } else {
             stateEl.innerHTML = '❌ DeviceMotion desteklenmiyor';
             stateEl.className = 'status-err';
@@ -255,7 +335,6 @@
 
     function startListening() {
         if (namazListener) {
-            // Zaten dinliyorsa tekrar ekleme
             document.getElementById('debug-state').innerHTML = '✅ Zaten aktif';
             document.getElementById('debug-state').className = 'status-ok';
             return;
@@ -264,7 +343,6 @@
         namazListener = true;
         document.getElementById('debug-state').innerHTML = '✅ Dinleniyor...';
         document.getElementById('debug-state').className = 'status-ok';
-        // Süre sayacı
         if (namazTimer) clearInterval(namazTimer);
         namazTimer = setInterval(() => {
             if (currentPage === 'namaz') {
@@ -272,22 +350,6 @@
                 document.getElementById('namaz-sure').innerText = namazSure;
             }
         }, 1000);
-    }
-
-    // Eşik güncelleme (slider'lardan)
-    function updateThresholds() {
-        const rukuSlider = document.getElementById('ruku-threshold');
-        const secdeSlider = document.getElementById('secde-threshold');
-        RUKU_THRESHOLD = parseInt(rukuSlider.value);
-        SECDE_THRESHOLD = parseInt(secdeSlider.value);
-        document.getElementById('ruku-threshold-label').innerText = RUKU_THRESHOLD + '°';
-        document.getElementById('secde-threshold-label').innerText = SECDE_THRESHOLD + '°';
-        // Eğer secde açısı rüküdan küçükse, düzelt (tolerans)
-        if (SECDE_THRESHOLD <= RUKU_THRESHOLD) {
-            SECDE_THRESHOLD = RUKU_THRESHOLD + 5;
-            secdeSlider.value = SECDE_THRESHOLD;
-            document.getElementById('secde-threshold-label').innerText = SECDE_THRESHOLD + '°';
-        }
     }
 
     function handleNamaz(event) {
@@ -298,7 +360,6 @@
             document.getElementById('debug-state').className = 'status-err';
             return;
         }
-
         let x = acc.x || 0, y = acc.y || 0, z = acc.z || 0;
         const horizontal = Math.sqrt(x*x + y*y);
         const vertical = Math.abs(z);
@@ -307,8 +368,8 @@
             angle = Math.atan2(horizontal, vertical) * 180 / Math.PI;
         }
         angle = Math.min(angle, 90);
+        currentAngle = angle; // global
 
-        // Debug güncelle
         document.getElementById('debug-x').innerText = x.toFixed(2);
         document.getElementById('debug-y').innerText = y.toFixed(2);
         document.getElementById('debug-z').innerText = z.toFixed(2);
@@ -320,7 +381,7 @@
 
         document.getElementById('namaz-tilt').innerText = Math.round(angle);
 
-        // Pozisyon tespiti (kullanıcı eşiklerine göre)
+        // Pozisyon tespiti (kalibrasyon eşiklerine göre)
         let pos = 'kıyam';
         let emoji = '🧍', text = 'Kıyam';
 
@@ -341,7 +402,6 @@
         document.getElementById('namaz-position').innerText = emoji;
         document.getElementById('namaz-position-text').innerText = text;
 
-        // Sayma (geçiş mantığı)
         if (pos !== lastPos) {
             if (pos === 'ruku' && lastPos === 'kıyam') namazRuku++;
             if (pos === 'secde' && lastPos === 'ruku') namazSecde++;
@@ -351,6 +411,65 @@
             document.getElementById('namaz-ruku').innerText = namazRuku;
             document.getElementById('namaz-secde').innerText = namazSecde;
         }
+    }
+
+    // ================= KALİBRASYON FONKSİYONLARI =================
+    function calibrate(pos) {
+        if (currentAngle === undefined || currentAngle === null) {
+            alert('Önce sensörü başlatın ve telefonu hareket ettirin.');
+            return;
+        }
+        const angle = Math.round(currentAngle);
+        if (pos === 'kiyam') {
+            kiyamAngle = angle;
+            document.getElementById('cal-kiyam').innerText = angle + '°';
+        } else if (pos === 'ruku') {
+            rukuAngle = angle;
+            document.getElementById('cal-ruku').innerText = angle + '°';
+        } else if (pos === 'secde') {
+            secdeAngle = angle;
+            document.getElementById('cal-secde').innerText = angle + '°';
+        }
+        document.getElementById('cal-status').innerHTML = `✅ ${pos.charAt(0).toUpperCase()+pos.slice(1)} kaydedildi (${angle}°)`;
+        // Otomatik uygulama yapma, kullanıcı "Uygula" butonuna bassın.
+    }
+
+    function applyCalibration() {
+        if (kiyamAngle === null || rukuAngle === null || secdeAngle === null) {
+            alert('Lütfen önce Kıyam, Rükû ve Secde pozisyonlarını sırayla kaydedin.');
+            return;
+        }
+        // Eşikleri hesapla (orta noktalar)
+        RUKU_THRESHOLD = Math.round((kiyamAngle + rukuAngle) / 2);
+        SECDE_THRESHOLD = Math.round((rukuAngle + secdeAngle) / 2);
+
+        // Güvenlik kontrolü: Rükû eşiği Kıyam'dan büyük, Secde eşiği Rükû'dan büyük olmalı
+        if (RUKU_THRESHOLD <= kiyamAngle) RUKU_THRESHOLD = kiyamAngle + 5;
+        if (SECDE_THRESHOLD <= rukuAngle) SECDE_THRESHOLD = rukuAngle + 5;
+        if (SECDE_THRESHOLD <= RUKU_THRESHOLD) SECDE_THRESHOLD = RUKU_THRESHOLD + 5;
+
+        document.getElementById('ruku-eşik').innerText = RUKU_THRESHOLD + '°';
+        document.getElementById('secde-eşik').innerText = SECDE_THRESHOLD + '°';
+        document.getElementById('cal-status').innerHTML = `✅ Kalibrasyon uygulandı! Rükû eşiği: ${RUKU_THRESHOLD}°, Secde eşiği: ${SECDE_THRESHOLD}°`;
+        // Eğer şu an namaz sayfasındaysak, pozisyonu güncelle
+        if (currentPage === 'namaz') {
+            // handleNamaz zaten sürekli çalışıyor, eşikler değiştiği için otomatik güncellenir.
+        }
+    }
+
+    function resetCalibration() {
+        kiyamAngle = null;
+        rukuAngle = null;
+        secdeAngle = null;
+        document.getElementById('cal-kiyam').innerText = '--°';
+        document.getElementById('cal-ruku').innerText = '--°';
+        document.getElementById('cal-secde').innerText = '--°';
+        document.getElementById('cal-status').innerHTML = 'Kalibrasyon sıfırlandı. Varsayılan eşikler kullanılıyor.';
+        // Varsayılan eşikleri geri yükle
+        RUKU_THRESHOLD = 30;
+        SECDE_THRESHOLD = 65;
+        document.getElementById('ruku-eşik').innerText = RUKU_THRESHOLD + '°';
+        document.getElementById('secde-eşik').innerText = SECDE_THRESHOLD + '°';
     }
 
     function resetNamaz() {
@@ -364,15 +483,13 @@
         document.getElementById('namaz-position').innerText = '🧍';
     }
 
-    // ================= DİĞER MODÜLLER (Kısa) =================
+    // ================= DİĞER MODÜLLER =================
     // Aktivite
     let activityListener = false;
     function initActivitySensor() {
         if (activityListener) return;
         activityListener = true;
-        if (window.DeviceMotionEvent) {
-            window.addEventListener('devicemotion', handleActivity);
-        }
+        if (window.DeviceMotionEvent) window.addEventListener('devicemotion', handleActivity);
     }
     function handleActivity(e) {
         if (currentPage !== 'activity') return;
@@ -394,7 +511,7 @@
     }
     function resetActivity() { stepCount=0; document.getElementById('activity-steps').innerText=0; document.getElementById('activity-cal').innerText=0; }
 
-    // Kat Sayacı
+    // Kat
     function addFloor(val) {
         let cur = parseInt(document.getElementById('floor-current').innerText) || 0;
         cur += val; if(cur<0) cur=0;
@@ -526,24 +643,22 @@
 
     // ================= BAŞLANGIÇ =================
     window.addEventListener('load', ()=>{
-        // Başlangıçta otomatik başlatmayı dene (Android için)
         if(window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission !== 'function'){
-            // Android'de direkt başlat
             startListening();
             initActivitySensor();
             initAlarmSensor();
         } else {
-            // iOS'ta kullanıcı butona tıklamalı, sadece uyarı ver
             document.getElementById('debug-state').innerHTML = '⏳ Başlatmak için butona tıklayın';
             document.getElementById('debug-state').className = 'status-err';
         }
         updateFloorUI();
-        // Eşik etiketlerini güncelle
-        updateThresholds();
+        // Varsayılan eşikleri göster
+        document.getElementById('ruku-eşik').innerText = RUKU_THRESHOLD + '°';
+        document.getElementById('secde-eşik').innerText = SECDE_THRESHOLD + '°';
     });
 
     window.addEventListener('beforeunload', ()=>{ if(isMicActive) stopMic(); });
-    console.log('📡 Asistan Sensör v2.2 - Namaz ayarları eklendi');
+    console.log('📡 Asistan Sensör v2.3 - Namaz kalibrasyonlu');
 </script>
 </body>
 </html>
