@@ -368,19 +368,22 @@ function loadCity() {
 // ========== KONUM AL ==========
 function getLocation() {
     const errorDiv = document.getElementById('locationError');
-    errorDiv.style.display = 'none';
-    errorDiv.textContent = '';
-    if (!navigator.geolocation) {
-        errorDiv.style.display = 'block';
-        errorDiv.textContent = '❌ Tarayıcınız konum özelliğini desteklemiyor. Lütfen koordinatları manuel girin.';
-        return;
-    }
     errorDiv.style.display = 'block';
     errorDiv.style.background = '#e0f2fe';
     errorDiv.style.color = '#0369a1';
-    errorDiv.textContent = '⏳ Konum alınıyor, lütfen bekleyin...';
+    errorDiv.textContent = '⏳ Konum alınıyor... (mobil cihazlarda biraz daha uzun sürebilir)';
+
+    if (!navigator.geolocation) {
+        errorDiv.style.background = '#fee2e2';
+        errorDiv.style.color = '#b91c1c';
+        errorDiv.textContent = '❌ Tarayıcınız konum özelliğini desteklemiyor. Lütfen koordinatları manuel girin.';
+        return;
+    }
+
+    // 1. Önce düşük hassasiyetle dene (ağ tabanlı, hızlı)
     navigator.geolocation.getCurrentPosition(
         function(pos) {
+            // Başarılı
             document.getElementById('latitude').value = pos.coords.latitude.toFixed(6);
             document.getElementById('longitude').value = pos.coords.longitude.toFixed(6);
             let tz = Math.round(pos.coords.longitude / 15);
@@ -392,28 +395,69 @@ function getLocation() {
             hesapla();
         },
         function(err) {
-            let msg = '';
-            switch(err.code) {
-                case err.PERMISSION_DENIED:
-                    msg = '❌ Konum izni reddedildi. Lütfen tarayıcı ayarlarından izin verin veya koordinatları manuel girin.';
-                    break;
-                case err.POSITION_UNAVAILABLE:
-                    msg = '❌ Konum bilgisi alınamıyor. GPS sinyali zayıf olabilir. Koordinatları manuel girin.';
-                    break;
-                case err.TIMEOUT:
-                    msg = '⏰ Konum alma zaman aşımına uğradı. Tekrar deneyin veya manuel girin.';
-                    break;
-                default:
-                    msg = '❌ Bilinmeyen hata: ' + err.message;
+            // Hata durumunda yüksek hassasiyetle (GPS) dene
+            if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
+                errorDiv.textContent = '⏳ Düşük hassasiyetle alınamadı, yüksek hassasiyetle deneniyor... (GPS açık olmalı)';
+                navigator.geolocation.getCurrentPosition(
+                    function(pos2) {
+                        document.getElementById('latitude').value = pos2.coords.latitude.toFixed(6);
+                        document.getElementById('longitude').value = pos2.coords.longitude.toFixed(6);
+                        let tz = Math.round(pos2.coords.longitude / 15);
+                        document.getElementById('timezone').value = tz;
+                        if (pos2.coords.altitude !== null && pos2.coords.altitude !== undefined) {
+                            document.getElementById('altitude').value = Math.round(pos2.coords.altitude);
+                        }
+                        errorDiv.style.display = 'none';
+                        hesapla();
+                    },
+                    function(err2) {
+                        let msg = '';
+                        switch(err2.code) {
+                            case err2.PERMISSION_DENIED:
+                                msg = '❌ Konum izni reddedildi. Tarayıcı ayarlarından izin verin veya koordinatları manuel girin.';
+                                break;
+                            case err2.POSITION_UNAVAILABLE:
+                                msg = '❌ Konum bilgisi alınamıyor. GPS sinyali yok. Koordinatları manuel girin.';
+                                break;
+                            case err2.TIMEOUT:
+                                msg = '⏰ Konum alma zaman aşımına uğradı. Tekrar deneyin veya manuel girin.';
+                                break;
+                            default:
+                                msg = '❌ Hata: ' + err2.message;
+                        }
+                        errorDiv.style.background = '#fee2e2';
+                        errorDiv.style.color = '#b91c1c';
+                        errorDiv.textContent = msg + ' 📌 Koordinatları elle girip "Vakitleri Hesapla" butonuna tıklayın.';
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 30000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                // Diğer hatalar (izin reddi vb.)
+                let msg = '';
+                switch(err.code) {
+                    case err.PERMISSION_DENIED:
+                        msg = '❌ Konum izni reddedildi. Tarayıcı ayarlarından izin verin veya koordinatları manuel girin.';
+                        break;
+                    default:
+                        msg = '❌ Hata: ' + err.message;
+                }
+                errorDiv.style.background = '#fee2e2';
+                errorDiv.style.color = '#b91c1c';
+                errorDiv.textContent = msg + ' 📌 Koordinatları elle girip "Vakitleri Hesapla" butonuna tıklayın.';
             }
-            errorDiv.style.display = 'block';
-            errorDiv.style.background = '#fee2e2';
-            errorDiv.style.color = '#b91c1c';
-            errorDiv.textContent = msg;
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        {
+            enableHighAccuracy: false,
+            timeout: 15000,
+            maximumAge: 60000
+        }
     );
 }
+
 
 // ========== HESAPLAMA (TEK GÜN) ==========
 let cachedData = {};
