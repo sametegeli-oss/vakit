@@ -181,7 +181,7 @@
         </div>
     </div>
 
-    <!-- Diğer modüller (öncekiyle aynı, kısaltıldı) -->
+    <!-- DİĞER MODÜLLER (KISA) -->
     <div id="page-activity" class="page"><div class="header"><button class="back-btn" onclick="showPage('home')">‹</button><h1>🚶 Aktivite</h1><span style="width:30px;"></span></div>
         <div class="sensor-box"><div style="font-size:18px;color:#aab9f0;">Anlık Durum</div><div id="activity-status" style="font-size:40px;font-weight:700;color:#4ade80;">🟢 Oturma</div><div class="progress-bar"><div class="progress-fill" id="activity-bar" style="width:10%;"></div></div><div style="display:flex;justify-content:space-between;font-size:12px;color:#6a7fa8;margin-top:4px;"><span>Düşük</span><span>Orta</span><span>Yüksek</span></div></div>
         <div class="stat-grid"><div class="stat-card"><div class="label">Adım</div><div class="value" id="activity-steps">0</div></div><div class="stat-card"><div class="label">Kalori</div><div class="value" id="activity-cal">0</div><div class="sub">kcal</div></div></div>
@@ -310,24 +310,18 @@
 
         // --- REKAT SAYMA MANTIĞI (Kıyam → Rükû → Kıyam → Secde → Oturma → Secde → Kıyam) ---
         if (pos !== lastPos) {
-            // Geçişleri kontrol et
             if (pos === 'ruku' && lastPos === 'kıyam') {
                 namazRuku++;
-            } else if (pos === 'kıyam' && lastPos === 'ruku') {
-                // Kıyam'a dönüldü (doğrulma) – sayma
             } else if (pos === 'secde' && lastPos === 'kıyam') {
                 namazSecde++; // 1. secde
-            } else if (pos === 'oturma' && lastPos === 'secde') {
-                // Oturma – sayma
             } else if (pos === 'secde' && lastPos === 'oturma') {
                 namazSecde++; // 2. secde
             } else if (pos === 'kıyam' && lastPos === 'secde') {
                 // İkinci secdeden sonra kıyam → Rekât bitti
                 namazRekat++;
-                // Sesli anons
                 try {
                     if (window.speechSynthesis) {
-                        const u = new SpeechSynthesisUtterance(`${namazRekat}. rekat`);
+                        const u = new SpeechSynthesisUtterance(namazRekat + '. rekat');
                         u.lang = 'tr-TR';
                         u.rate = 0.9;
                         window.speechSynthesis.cancel();
@@ -342,7 +336,7 @@
         }
     }
 
-    // ================= KALİBRASYON (4 pozisyon) =================
+    // ================= KALİBRASYON =================
     function calibrate(pos) {
         if (currentAngle === undefined || currentAngle === null) { alert('Sensörü başlatın ve telefonu hareket ettirin.'); return; }
         const angle = Math.round(currentAngle);
@@ -355,14 +349,14 @@
         } else if (pos === 'ruku') {
             if (kiyamAngle !== null && angle < kiyamAngle) {
                 warningEl.style.display = 'block';
-                warningEl.innerText = '⚠️ Rükû açısı Kıyam'dan küçük! Lütfen dik tutup Kıyam, eğilip Rükû kaydedin.';
+                warningEl.innerText = '⚠️ Rükû açısı Kıyam\'dan küçük! Lütfen dik tutup Kıyam, eğilip Rükû kaydedin.';
             }
             rukuAngle = angle;
             document.getElementById('cal-ruku').innerText = angle + '°';
         } else if (pos === 'oturma') {
             if (rukuAngle !== null && angle < rukuAngle) {
                 warningEl.style.display = 'block';
-                warningEl.innerText = '⚠️ Oturma açısı Rükû'dan küçük! Lütfen Rükû ile Secde arasında bir açıda kaydedin.';
+                warningEl.innerText = '⚠️ Oturma açısı Rükû\'dan küçük! Lütfen Rükû ile Secde arasında bir açıda kaydedin.';
             }
             oturmaAngle = angle;
             document.getElementById('cal-oturma').innerText = angle + '°';
@@ -375,9 +369,8 @@
             document.getElementById('cal-secde').innerText = angle + '°';
         }
 
-        document.getElementById('cal-status').innerHTML = `✅ ${pos.charAt(0).toUpperCase()+pos.slice(1)} kaydedildi (${angle}°)`;
+        document.getElementById('cal-status').innerHTML = '✅ ' + pos.charAt(0).toUpperCase() + pos.slice(1) + ' kaydedildi (' + angle + '°)';
 
-        // Aralıkları göster (hepsi kaydedildiyse)
         if (kiyamAngle !== null && rukuAngle !== null && oturmaAngle !== null && secdeAngle !== null) {
             if (kiyamAngle < rukuAngle && rukuAngle < oturmaAngle && oturmaAngle < secdeAngle) {
                 let rukuEşik = Math.round((kiyamAngle + rukuAngle) / 2);
@@ -386,10 +379,10 @@
                 if (rukuEşik - kiyamAngle < 3) rukuEşik = kiyamAngle + 3;
                 if (oturmaEşik - rukuAngle < 3) oturmaEşik = rukuAngle + 3;
                 if (secdeEşik - oturmaAngle < 3) secdeEşik = oturmaAngle + 3;
-                document.getElementById('kiyam-aralık').innerText = `0° - ${rukuEşik}°`;
-                document.getElementById('ruku-aralık').innerText = `${rukuEşik}° - ${oturmaEşik}°`;
-                document.getElementById('oturma-aralık').innerText = `${oturmaEşik}° - ${secdeEşik}°`;
-                document.getElementById('secde-aralık').innerText = `${secdeEşik}° - 90°`;
+                document.getElementById('kiyam-aralık').innerText = '0° - ' + rukuEşik + '°';
+                document.getElementById('ruku-aralık').innerText = rukuEşik + '° - ' + oturmaEşik + '°';
+                document.getElementById('oturma-aralık').innerText = oturmaEşik + '° - ' + secdeEşik + '°';
+                document.getElementById('secde-aralık').innerText = secdeEşik + '° - 90°';
             } else {
                 document.getElementById('kiyam-aralık').innerText = '0° - ?';
                 document.getElementById('ruku-aralık').innerText = '? - ?';
@@ -425,12 +418,11 @@
         OTURMA_THRESHOLD = oturmaEşik;
         SECDE_THRESHOLD = secdeEşik;
 
-        document.getElementById('cal-status').innerHTML = `✅ Kalibrasyon uygulandı! Rükû: ${RUKU_THRESHOLD}°, Oturma: ${OTURMA_THRESHOLD}°, Secde: ${SECDE_THRESHOLD}°`;
-        document.getElementById('kiyam-aralık').innerText = `0° - ${RUKU_THRESHOLD}°`;
-        document.getElementById('ruku-aralık').innerText = `${RUKU_THRESHOLD}° - ${OTURMA_THRESHOLD}°`;
-        document.getElementById('oturma-aralık').innerText = `${OTURMA_THRESHOLD}° - ${SECDE_THRESHOLD}°`;
-        document.getElementById('secde-aralık').innerText = `${SECDE_THRESHOLD}° - 90°`;
-        // Sayaçları sıfırla (kalibrasyon değişince eski sayımlar geçersiz)
+        document.getElementById('cal-status').innerHTML = '✅ Kalibrasyon uygulandı! Rükû: ' + RUKU_THRESHOLD + '°, Oturma: ' + OTURMA_THRESHOLD + '°, Secde: ' + SECDE_THRESHOLD + '°';
+        document.getElementById('kiyam-aralık').innerText = '0° - ' + RUKU_THRESHOLD + '°';
+        document.getElementById('ruku-aralık').innerText = RUKU_THRESHOLD + '° - ' + OTURMA_THRESHOLD + '°';
+        document.getElementById('oturma-aralık').innerText = OTURMA_THRESHOLD + '° - ' + SECDE_THRESHOLD + '°';
+        document.getElementById('secde-aralık').innerText = SECDE_THRESHOLD + '° - 90°';
         resetNamaz();
     }
 
@@ -461,7 +453,7 @@
         document.getElementById('namaz-position').innerText = '🧍';
     }
 
-    // ================= DİĞER MODÜLLER (öncekiyle aynı, kısaltıldı) =================
+    // ================= DİĞER MODÜLLER =================
     let activityListener = false;
     function initActivitySensor() {
         if (activityListener) return;
@@ -615,7 +607,7 @@
     }
 
     // ================= BAŞLANGIÇ =================
-    window.addEventListener('load', ()=>{
+    window.addEventListener('load', function() {
         if(window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission !== 'function'){
             startListening();
             initActivitySensor();
@@ -627,8 +619,10 @@
         updateFloorUI();
     });
 
-    window.addEventListener('beforeunload', ()=>{ if(isMicActive) stopMic(); });
-    console.log('📡 Asistan Sensör v3.0 - Oturma eklendi, rekât sayımı düzeltildi.');
+    window.addEventListener('beforeunload', function() {
+        if(isMicActive) stopMic();
+    });
+    console.log('📡 Asistan Sensör v3.0 - Oturma eklendi');
 </script>
 </body>
 </html>
