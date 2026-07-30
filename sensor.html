@@ -55,6 +55,7 @@
         .calibration-box .cal-label { font-size:14px; color:#aab9f0; }
         .calibration-box .cal-value { font-size:18px; font-weight:700; color:#facc15; }
         .calibration-box .btn { padding:10px; font-size:14px; width:auto; flex:1; margin:0 4px; }
+        .calibration-box .cal-range { font-size:13px; color:#7a8fc0; margin-top:4px; }
     </style>
 </head>
 <body>
@@ -64,7 +65,7 @@
     <div id="page-home" class="page active">
         <div class="header">
             <h1>📡 Asistan Sensör</h1>
-            <span class="icon-badge">v2.3</span>
+            <span class="icon-badge">v2.4</span>
         </div>
         <p style="color:#8899bb; margin-bottom:4px; font-size:14px;">Telefonunuzun tüm sensörleri tek uygulamada</p>
         <div class="menu-grid">
@@ -106,7 +107,7 @@
         </div>
     </div>
 
-    <!-- ========== NAMAZ (KALİBRASYONLU) ========== -->
+    <!-- ========== NAMAZ (KALİBRASYONLU + AÇI DÜZELTİLDİ) ========== -->
     <div id="page-namaz" class="page">
         <div class="header">
             <button class="back-btn" onclick="showPage('home')">‹</button>
@@ -161,6 +162,7 @@
                 <span>Rükû eşiği: <strong id="ruku-eşik">30°</strong></span>
                 <span>Secde eşiği: <strong id="secde-eşik">65°</strong></span>
             </div>
+            <div class="cal-range" id="cal-range-info">Kıyam: 0°-... , Rükû: ...-... , Secde: ...-90°</div>
         </div>
 
         <!-- SAYAÇLAR -->
@@ -291,10 +293,9 @@
     let alarmTriggered = false, stepCount = 0, todayFloors = 0;
     let namazRekat = 0, namazRuku = 0, namazSecde = 0, namazSure = 0;
     let namazTimer = null, lastPos = 'kıyam';
-    let sensorActive = false;
-    let currentAngle = 0; // anlık hesaplanan açı
+    let currentAngle = 0; // düzeltilmiş açı (0=dik, 90=yatay)
 
-    // Kalibrasyon değişkenleri
+    // Kalibrasyon
     let kiyamAngle = null, rukuAngle = null, secdeAngle = null;
     let RUKU_THRESHOLD = 30;
     let SECDE_THRESHOLD = 65;
@@ -305,15 +306,13 @@
         const target = document.getElementById('page-' + id);
         if (target) target.classList.add('active');
         currentPage = id;
-        if (id === 'namaz') { /* sensör zaten başlatılmış olabilir */ }
         if (id === 'alarm') initAlarmSensor();
         if (id === 'activity') initActivitySensor();
         if (id === 'reports') refreshReports();
         if (id === 'floor') updateFloorUI();
-        if (id === 'breath') { /* mikrofon butonla */ }
     }
 
-    // ================= NAMAZ (KALİBRASYONLU) =================
+    // ================= NAMAZ (AÇI DÜZELTİLDİ) =================
     let namazListener = false;
 
     function manualStartSensor() {
@@ -322,7 +321,7 @@
             if (typeof DeviceMotionEvent.requestPermission === 'function') {
                 DeviceMotionEvent.requestPermission()
                     .then(state => {
-                        if (state === 'granted') { startListening(); }
+                        if (state === 'granted') startListening();
                         else { stateEl.innerHTML = '❌ İzin reddedildi'; stateEl.className = 'status-err'; }
                     })
                     .catch(err => { stateEl.innerHTML = '⚠️ Hata: ' + err.message; stateEl.className = 'status-err'; });
@@ -368,28 +367,32 @@
             angle = Math.atan2(horizontal, vertical) * 180 / Math.PI;
         }
         angle = Math.min(angle, 90);
-        currentAngle = angle; // global
+
+        // ★ AÇIYI TERS ÇEVİR: 0° = dik, 90° = yatay
+        let correctedAngle = 90 - angle;
+        if (correctedAngle < 0) correctedAngle = 0;
+        if (correctedAngle > 90) correctedAngle = 90;
+        currentAngle = correctedAngle;
 
         document.getElementById('debug-x').innerText = x.toFixed(2);
         document.getElementById('debug-y').innerText = y.toFixed(2);
         document.getElementById('debug-z').innerText = z.toFixed(2);
         document.getElementById('debug-h').innerText = horizontal.toFixed(2);
         document.getElementById('debug-v').innerText = vertical.toFixed(2);
-        document.getElementById('debug-angle').innerText = angle.toFixed(1);
+        document.getElementById('debug-angle').innerText = correctedAngle.toFixed(1);
         document.getElementById('debug-state').innerHTML = '✅ Veri akıyor';
         document.getElementById('debug-state').className = 'status-ok';
 
-        document.getElementById('namaz-tilt').innerText = Math.round(angle);
+        document.getElementById('namaz-tilt').innerText = Math.round(correctedAngle);
 
-        // Pozisyon tespiti (kalibrasyon eşiklerine göre)
         let pos = 'kıyam';
         let emoji = '🧍', text = 'Kıyam';
 
-        if (angle > RUKU_THRESHOLD && angle < SECDE_THRESHOLD) {
+        if (correctedAngle > RUKU_THRESHOLD && correctedAngle < SECDE_THRESHOLD) {
             pos = 'ruku';
             emoji = '🙇';
             text = 'Rükû';
-        } else if (angle >= SECDE_THRESHOLD) {
+        } else if (correctedAngle >= SECDE_THRESHOLD) {
             pos = 'secde';
             emoji = '🕌';
             text = 'Secde';
@@ -413,7 +416,7 @@
         }
     }
 
-    // ================= KALİBRASYON FONKSİYONLARI =================
+    // ================= KALİBRASYON =================
     function calibrate(pos) {
         if (currentAngle === undefined || currentAngle === null) {
             alert('Önce sensörü başlatın ve telefonu hareket ettirin.');
@@ -431,7 +434,6 @@
             document.getElementById('cal-secde').innerText = angle + '°';
         }
         document.getElementById('cal-status').innerHTML = `✅ ${pos.charAt(0).toUpperCase()+pos.slice(1)} kaydedildi (${angle}°)`;
-        // Otomatik uygulama yapma, kullanıcı "Uygula" butonuna bassın.
     }
 
     function applyCalibration() {
@@ -439,37 +441,39 @@
             alert('Lütfen önce Kıyam, Rükû ve Secde pozisyonlarını sırayla kaydedin.');
             return;
         }
-        // Eşikleri hesapla (orta noktalar)
-        RUKU_THRESHOLD = Math.round((kiyamAngle + rukuAngle) / 2);
-        SECDE_THRESHOLD = Math.round((rukuAngle + secdeAngle) / 2);
 
-        // Güvenlik kontrolü: Rükû eşiği Kıyam'dan büyük, Secde eşiği Rükû'dan büyük olmalı
-        if (RUKU_THRESHOLD <= kiyamAngle) RUKU_THRESHOLD = kiyamAngle + 5;
-        if (SECDE_THRESHOLD <= rukuAngle) SECDE_THRESHOLD = rukuAngle + 5;
-        if (SECDE_THRESHOLD <= RUKU_THRESHOLD) SECDE_THRESHOLD = RUKU_THRESHOLD + 5;
+        // Eşikleri hesapla (ortalama)
+        let rukuEşik = Math.round((kiyamAngle + rukuAngle) / 2);
+        let secdeEşik = Math.round((rukuAngle + secdeAngle) / 2);
+
+        // Tolerans: eğer eşikler çok yakınsa, genişlet
+        if (rukuEşik - kiyamAngle < 5) rukuEşik = kiyamAngle + 5;
+        if (secdeEşik - rukuAngle < 5) secdeEşik = rukuAngle + 5;
+        if (secdeEşik <= rukuEşik) secdeEşik = rukuEşik + 5;
+
+        RUKU_THRESHOLD = rukuEşik;
+        SECDE_THRESHOLD = secdeEşik;
 
         document.getElementById('ruku-eşik').innerText = RUKU_THRESHOLD + '°';
         document.getElementById('secde-eşik').innerText = SECDE_THRESHOLD + '°';
-        document.getElementById('cal-status').innerHTML = `✅ Kalibrasyon uygulandı! Rükû eşiği: ${RUKU_THRESHOLD}°, Secde eşiği: ${SECDE_THRESHOLD}°`;
-        // Eğer şu an namaz sayfasındaysak, pozisyonu güncelle
-        if (currentPage === 'namaz') {
-            // handleNamaz zaten sürekli çalışıyor, eşikler değiştiği için otomatik güncellenir.
-        }
+        document.getElementById('cal-status').innerHTML = `✅ Kalibrasyon uygulandı! Rükû: ${RUKU_THRESHOLD}°, Secde: ${SECDE_THRESHOLD}°`;
+
+        // Açı aralığını göster
+        document.getElementById('cal-range-info').innerHTML =
+            `Kıyam: 0°-${RUKU_THRESHOLD}° , Rükû: ${RUKU_THRESHOLD}°-${SECDE_THRESHOLD}° , Secde: ${SECDE_THRESHOLD}°-90°`;
     }
 
     function resetCalibration() {
-        kiyamAngle = null;
-        rukuAngle = null;
-        secdeAngle = null;
+        kiyamAngle = null; rukuAngle = null; secdeAngle = null;
         document.getElementById('cal-kiyam').innerText = '--°';
         document.getElementById('cal-ruku').innerText = '--°';
         document.getElementById('cal-secde').innerText = '--°';
         document.getElementById('cal-status').innerHTML = 'Kalibrasyon sıfırlandı. Varsayılan eşikler kullanılıyor.';
-        // Varsayılan eşikleri geri yükle
         RUKU_THRESHOLD = 30;
         SECDE_THRESHOLD = 65;
         document.getElementById('ruku-eşik').innerText = RUKU_THRESHOLD + '°';
         document.getElementById('secde-eşik').innerText = SECDE_THRESHOLD + '°';
+        document.getElementById('cal-range-info').innerHTML = 'Kıyam: 0°-30° , Rükû: 30°-65° , Secde: 65°-90°';
     }
 
     function resetNamaz() {
@@ -484,7 +488,7 @@
     }
 
     // ================= DİĞER MODÜLLER =================
-    // Aktivite
+    // (Aktivite, Kat, Nefes, Alarm, Raporlar - öncekiyle aynı, kısaltılmış)
     let activityListener = false;
     function initActivitySensor() {
         if (activityListener) return;
@@ -511,7 +515,6 @@
     }
     function resetActivity() { stepCount=0; document.getElementById('activity-steps').innerText=0; document.getElementById('activity-cal').innerText=0; }
 
-    // Kat
     function addFloor(val) {
         let cur = parseInt(document.getElementById('floor-current').innerText) || 0;
         cur += val; if(cur<0) cur=0;
@@ -526,7 +529,6 @@
         document.getElementById('floor-bar').style.width = pct+'%';
     }
 
-    // Nefes
     function toggleMic() { if(isMicActive) stopMic(); else startMic(); }
     async function startMic() {
         try {
@@ -584,7 +586,6 @@
         document.getElementById('breath-phase').innerHTML='⏸ Bekleniyor';
     }
 
-    // Alarm
     let alarmListener=false, alarmCooldown=false;
     function initAlarmSensor() {
         if(alarmListener) return;
@@ -631,7 +632,6 @@
         setTimeout(()=>{ alarmCooldown=false; },1000);
     }
 
-    // Raporlar
     function refreshReports() {
         document.getElementById('report-steps').innerText=stepCount;
         document.getElementById('report-namaz').innerText=Math.round(namazSure/60);
@@ -652,13 +652,13 @@
             document.getElementById('debug-state').className = 'status-err';
         }
         updateFloorUI();
-        // Varsayılan eşikleri göster
         document.getElementById('ruku-eşik').innerText = RUKU_THRESHOLD + '°';
         document.getElementById('secde-eşik').innerText = SECDE_THRESHOLD + '°';
+        document.getElementById('cal-range-info').innerHTML = 'Kıyam: 0°-30° , Rükû: 30°-65° , Secde: 65°-90°';
     });
 
     window.addEventListener('beforeunload', ()=>{ if(isMicActive) stopMic(); });
-    console.log('📡 Asistan Sensör v2.3 - Namaz kalibrasyonlu');
+    console.log('📡 Asistan Sensör v2.4 - Açı düzeltildi');
 </script>
 </body>
 </html>
