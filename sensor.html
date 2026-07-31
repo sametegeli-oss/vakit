@@ -67,7 +67,7 @@
         <div class="header">
             <h1>📡 Asistan Sensör</h1>
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="icon-badge">v3.2</span>
+                <span class="icon-badge">v3.3</span>
                 <a href="index.html" class="btn" style="background: #0b2b5c; padding: 6px 12px; font-size: 0.8rem; border-radius: 30px; text-decoration: none; color: white;">🕌 Vakitler</a>
             </div>
         </div>
@@ -142,7 +142,7 @@
         <div class="status-msg">📌 Kalibrasyon sırası: <strong>Kıyam → Rükû → Oturma → Secde</strong> (sırayla kaydedip Uygula'ya basın)</div>
     </div>
 
-    <!-- Diğer modüller (öncekiyle aynı) -->
+    <!-- Diğer modüller (aynı) -->
     <div id="page-activity" class="page"><div class="header"><button class="back-btn" onclick="showPage('home')">‹</button><h1>🚶 Aktivite</h1><span style="width:30px;"></span></div>
         <div class="sensor-box"><div style="font-size:18px;color:#aab9f0;">Anlık Durum</div><div id="activity-status" style="font-size:40px;font-weight:700;color:#4ade80;">🟢 Oturma</div><div class="progress-bar"><div class="progress-fill" id="activity-bar" style="width:10%;"></div></div><div style="display:flex;justify-content:space-between;font-size:12px;color:#6a7fa8;margin-top:4px;"><span>Düşük</span><span>Orta</span><span>Yüksek</span></div></div>
         <div class="stat-grid"><div class="stat-card"><div class="label">Adım</div><div class="value" id="activity-steps">0</div></div><div class="stat-card"><div class="label">Kalori</div><div class="value" id="activity-cal">0</div><div class="sub">kcal</div></div></div>
@@ -221,7 +221,7 @@
         }, 1000);
     }
 
-    // ========== YENİ handleNamaz (SIRALI GEÇİŞLER) ==========
+    // ========== NAMAZ ALGILAMA (SIRALI GEÇİŞLER) ==========
     function handleNamaz(event) {
         if (currentPage !== 'namaz') return;
         var acc = event.accelerationIncludingGravity;
@@ -244,7 +244,7 @@
         document.getElementById('debug-state').className = 'status-ok';
         document.getElementById('namaz-tilt').innerText = Math.round(angle);
 
-        // Pozisyon tespiti (açı eşiklerine göre)
+        // Pozisyon tespiti (eşiklere göre)
         var pos = 'kıyam', emoji = '🧍', text = 'Kıyam';
         if (angle > RUKU_THRESHOLD && angle < OTURMA_THRESHOLD) {
             pos = 'ruku'; emoji = '🙇'; text = 'Rükû';
@@ -259,7 +259,7 @@
         document.getElementById('namaz-position').innerText = emoji;
         document.getElementById('namaz-position-text').innerText = text;
 
-        // Sıralı geçiş kontrolü (namazdaki sıraya göre)
+        // Sıralı geçiş kontrolü
         if (pos !== lastPos) {
             var gecerli = false;
             // Kıyam -> Rükû
@@ -299,21 +299,19 @@
                 } catch(e) {}
                 gecerli = true;
             }
-            // Diğer geçişler (Kıyam->Oturma, Oturma->Kıyam, Rükû->Secde, Secde->Rükû vb.) geçersiz, sayma yapma
-            // ve lastPos'u güncelleme
+            // Diğer geçişler geçersiz
             else {
                 gecerli = false;
             }
 
-            // Eğer geçerli bir geçiş ise lastPos'u güncelle
             if (gecerli) {
                 lastPos = pos;
             }
-            // Geçersiz geçişte lastPos değişmez (sıralama korunur)
+            // Geçersizde lastPos değişmez
         }
     }
 
-    // ========== KALİBRASYON (Aynı) ==========
+    // ========== KALİBRASYON (OTOMATİK SIRALAMA) ==========
     function calibrate(pos) {
         if (currentAngle === undefined || currentAngle === null) { alert('Sensörü başlatın ve telefonu hareket ettirin.'); return; }
         var angle = Math.round(currentAngle);
@@ -331,31 +329,33 @@
             document.getElementById('cal-secde').innerText = angle + '°';
         }
         document.getElementById('cal-status').innerHTML = '✅ ' + pos.charAt(0).toUpperCase() + pos.slice(1) + ' kaydedildi (' + angle + '°)';
-        if (kiyamAngle !== null && rukuAngle !== null && oturmaAngle !== null && secdeAngle !== null) {
-            var rukuEsik = Math.round((kiyamAngle + rukuAngle) / 2);
-            var oturmaEsik = Math.round((rukuAngle + oturmaAngle) / 2);
-            var secdeEsik = Math.round((oturmaAngle + secdeAngle) / 2);
-            if (rukuEsik - kiyamAngle < 3) rukuEsik = kiyamAngle + 3;
-            if (oturmaEsik - rukuAngle < 3) oturmaEsik = rukuAngle + 3;
-            if (secdeEsik - oturmaAngle < 3) secdeEsik = oturmaAngle + 3;
-            document.getElementById('kiyam-aralık').innerText = '0° - ' + rukuEsik + '°';
-            document.getElementById('ruku-aralık').innerText = rukuEsik + '° - ' + oturmaEsik + '°';
-            document.getElementById('oturma-aralık').innerText = oturmaEsik + '° - ' + secdeEsik + '°';
-            document.getElementById('secde-aralık').innerText = secdeEsik + '° - 90°';
-        }
     }
 
     function applyCalibration() {
         if (kiyamAngle === null || rukuAngle === null || oturmaAngle === null || secdeAngle === null) {
-            alert('Lütfen Kıyam, Rükû, Oturma ve Secde pozisyonlarını sırayla kaydedin.');
+            alert('Lütfen 4 pozisyonu da kaydedin.');
             return;
         }
-        var rukuEsik = Math.round((kiyamAngle + rukuAngle) / 2);
-        var oturmaEsik = Math.round((rukuAngle + oturmaAngle) / 2);
-        var secdeEsik = Math.round((oturmaAngle + secdeAngle) / 2);
-        if (rukuEsik - kiyamAngle < 3) rukuEsik = kiyamAngle + 3;
-        if (oturmaEsik - rukuAngle < 3) oturmaEsik = rukuAngle + 3;
-        if (secdeEsik - oturmaAngle < 3) secdeEsik = oturmaAngle + 3;
+
+        // Açıları bir diziye al, sırala
+        var angles = [kiyamAngle, rukuAngle, oturmaAngle, secdeAngle];
+        angles.sort(function(a, b) { return a - b; }); // küçükten büyüğe
+
+        // En küçük = Kıyam, en büyük = Secde, ortadakiler = Rükû ve Oturma
+        var sortedKiyam = angles[0];
+        var sortedRuku = angles[1];
+        var sortedOturma = angles[2];
+        var sortedSecde = angles[3];
+
+        // Eşikleri hesapla
+        var rukuEsik = Math.round((sortedKiyam + sortedRuku) / 2);
+        var oturmaEsik = Math.round((sortedRuku + sortedOturma) / 2);
+        var secdeEsik = Math.round((sortedOturma + sortedSecde) / 2);
+
+        // Tolerans ekle (fark çok küçükse)
+        if (rukuEsik - sortedKiyam < 3) rukuEsik = sortedKiyam + 3;
+        if (oturmaEsik - sortedRuku < 3) oturmaEsik = sortedRuku + 3;
+        if (secdeEsik - sortedOturma < 3) secdeEsik = sortedOturma + 3;
         if (rukuEsik >= oturmaEsik) oturmaEsik = rukuEsik + 3;
         if (oturmaEsik >= secdeEsik) secdeEsik = oturmaEsik + 3;
 
@@ -363,6 +363,7 @@
         OTURMA_THRESHOLD = oturmaEsik;
         SECDE_THRESHOLD = secdeEsik;
 
+        // Kalibrasyon durumunu ve aralıkları göster
         document.getElementById('cal-status').innerHTML = '✅ Kalibrasyon uygulandı! Rükû: ' + RUKU_THRESHOLD + '°, Oturma: ' + OTURMA_THRESHOLD + '°, Secde: ' + SECDE_THRESHOLD + '°';
         document.getElementById('kiyam-aralık').innerText = '0° - ' + RUKU_THRESHOLD + '°';
         document.getElementById('ruku-aralık').innerText = RUKU_THRESHOLD + '° - ' + OTURMA_THRESHOLD + '°';
@@ -565,7 +566,7 @@
     window.addEventListener('beforeunload', function() {
         if(isMicActive) stopMic();
     });
-    console.log('📡 Asistan Sensör v3.2 - Sıralı geçiş sistemi eklendi');
+    console.log('📡 Asistan Sensör v3.3 - Otomatik sıralama eklendi');
 </script>
 </body>
 </html>
