@@ -67,7 +67,7 @@
         <div class="header">
             <h1>📡 Asistan Sensör</h1>
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="icon-badge">v3.4</span>
+                <span class="icon-badge">v3.5</span>
                 <a href="index.html" class="btn" style="background: #0b2b5c; padding: 6px 12px; font-size: 0.8rem; border-radius: 30px; text-decoration: none; color: white;">🕌 Vakitler</a>
             </div>
         </div>
@@ -97,20 +97,20 @@
             <div style="font-size:18px; color:#aab9f0;">Mevcut Pozisyon</div>
             <div id="namaz-position" class="big-number" style="font-size:52px;">🧍</div>
             <div id="namaz-position-text" style="font-size:22px; font-weight:600; color:#fff;">Kıyam</div>
-            <div style="margin-top:8px; font-size:14px; color:#7a8fc0;">Açı: <span id="namaz-tilt">0</span>° (0°=yatay, 90°=dik)</div>
+            <div style="margin-top:8px; font-size:14px; color:#7a8fc0;">Açı: <span id="namaz-tilt">0</span>° (0°=dik, 90°=yatay)</div>
         </div>
         <button class="btn btn-primary" onclick="manualStartSensor()">🔄 Sensörü Başlat / İzni Yenile</button>
         <div class="debug-panel">
             <div>📊 <strong>Ham Sensör Verileri</strong></div>
             <div>X: <span class="val" id="debug-x">0.00</span> &nbsp;|&nbsp; Y: <span class="val" id="debug-y">0.00</span> &nbsp;|&nbsp; Z: <span class="val" id="debug-z">0.00</span></div>
             <div>Yatay (H): <span class="val" id="debug-h">0.00</span> &nbsp;|&nbsp; Dikey (V): <span class="val" id="debug-v">0.00</span></div>
-            <div>📐 Hesaplanan Açı: <span class="val" id="debug-angle">0.0</span>° (0°=yatay, 90°=dik)</div>
+            <div>📐 Hesaplanan Açı: <span class="val" id="debug-angle">0.0</span>° (0°=dik, 90°=yatay)</div>
             <div>🔵 Sensör Durumu: <span id="debug-state" class="status-err">Başlatılmadı</span></div>
         </div>
         <div class="calibration-box">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <span style="font-weight:600; color:#aab9f0;">⚙️ Kalibrasyon (4 pozisyon)</span>
-                <span style="font-size:12px; color:#7a8fc0;">Açılar: 0°=yatay, 90°=dik</span>
+                <span style="font-size:12px; color:#7a8fc0;">0°=dik, 90°=yatay</span>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center;">
                 <button class="btn btn-success" onclick="calibrate('kiyam')" style="flex:1; min-width:70px;">🧍 Kıyam</button>
@@ -118,7 +118,7 @@
                 <button class="btn btn-warning" onclick="calibrate('oturma')" style="flex:1; min-width:70px;">🧎 Oturma</button>
                 <button class="btn btn-secondary" onclick="calibrate('secde')" style="flex:1; min-width:70px;">🕌 Secde</button>
             </div>
-            <div class="cal-hint">📌 Yatay → Secde | 30-40° → Oturma | 45-60° → Rükû | Dik → Kıyam</div>
+            <div class="cal-hint">📌 Dik → Kıyam | 45° → Rükû | 30° → Oturma | Yatay → Secde</div>
             <div class="cal-row"><span class="cal-label">Kıyam:</span><span class="cal-value" id="cal-kiyam">--°</span></div>
             <div class="cal-row"><span class="cal-label">Rükû:</span><span class="cal-value" id="cal-ruku">--°</span></div>
             <div class="cal-row"><span class="cal-label">Oturma:</span><span class="cal-value" id="cal-oturma">--°</span></div>
@@ -129,7 +129,7 @@
             </div>
             <div style="margin-top:8px; font-size:13px; color:#7a8fc0; text-align:center;"><span id="cal-status">Henüz kalibrasyon yapılmadı.</span></div>
             <div class="cal-range">
-                <span>📏 Kıyam: <strong id="kiyam-aralık">? - 90°</strong> &nbsp;|&nbsp; Rükû: <strong id="ruku-aralık">? - ?</strong> &nbsp;|&nbsp; Oturma: <strong id="oturma-aralık">? - ?</strong> &nbsp;|&nbsp; Secde: <strong id="secde-aralık">0° - ?</strong></span>
+                <span>📏 Kıyam: <strong id="kiyam-aralık">0° - ?</strong> &nbsp;|&nbsp; Rükû: <strong id="ruku-aralık">? - ?</strong> &nbsp;|&nbsp; Oturma: <strong id="oturma-aralık">? - ?</strong> &nbsp;|&nbsp; Secde: <strong id="secde-aralık">? - 90°</strong></span>
             </div>
         </div>
         <div class="stat-grid">
@@ -184,7 +184,7 @@
     var namazTimer = null, lastPos = 'kıyam';
     var currentAngle = 0;
     var kiyamAngle = null, rukuAngle = null, oturmaAngle = null, secdeAngle = null;
-    var RUKU_THRESHOLD = 45, OTURMA_THRESHOLD = 30, SECDE_THRESHOLD = 15;
+    var RUKU_THRESHOLD = 30, OTURMA_THRESHOLD = 50, SECDE_THRESHOLD = 70;
     var namazListener = false;
 
     function showPage(id) {
@@ -221,7 +221,7 @@
         }, 1000);
     }
 
-    // ========== AÇI HESAPLAMA (YATAY=0°, DİK=90°) ==========
+    // ========== AÇI HESAPLAMA (DİK=0, YATAY=90) ==========
     function handleNamaz(event) {
         if (currentPage !== 'namaz') return;
         var acc = event.accelerationIncludingGravity;
@@ -229,14 +229,12 @@
         var x = acc.x || 0, y = acc.y || 0, z = acc.z || 0;
         var horizontal = Math.sqrt(x*x + y*y);
         var vertical = Math.abs(z);
-        var rawAngle = 0;
+        var angle = 0;
         if (horizontal + vertical > 0.5) {
-            rawAngle = Math.atan2(horizontal, vertical) * 180 / Math.PI;
+            angle = Math.atan2(horizontal, vertical) * 180 / Math.PI;
         }
-        rawAngle = Math.min(rawAngle, 90);
-        // Yeni sistem: 0° = yatay (secde), 90° = dik (kıyam)
-        var angle = 90 - rawAngle;
-        currentAngle = angle;
+        angle = Math.min(angle, 90);
+        currentAngle = angle; // Burada angle = rawAngle (dik=0, yatay=90)
 
         document.getElementById('debug-x').innerText = x.toFixed(2);
         document.getElementById('debug-y').innerText = y.toFixed(2);
@@ -248,34 +246,34 @@
         document.getElementById('debug-state').className = 'status-ok';
         document.getElementById('namaz-tilt').innerText = Math.round(angle);
 
-        // Pozisyon tespiti (yeni eşiklere göre)
-        // Secde: 0° – SECDE_THRESHOLD
-        // Oturma: SECDE_THRESHOLD – OTURMA_THRESHOLD
-        // Rükû: OTURMA_THRESHOLD – RUKU_THRESHOLD
-        // Kıyam: RUKU_THRESHOLD – 90°
+        // Pozisyon tespiti (dik=0, yatay=90)
+        // Kıyam: 0° – RUKU_THRESHOLD
+        // Rükû: RUKU_THRESHOLD – OTURMA_THRESHOLD
+        // Oturma: OTURMA_THRESHOLD – SECDE_THRESHOLD
+        // Secde: SECDE_THRESHOLD – 90°
         var pos = 'kıyam', emoji = '🧍', text = 'Kıyam';
-        if (angle < SECDE_THRESHOLD) {
-            pos = 'secde';
-            emoji = '🕌';
-            text = 'Secde';
-        } else if (angle >= SECDE_THRESHOLD && angle < OTURMA_THRESHOLD) {
-            pos = 'oturma';
-            emoji = '🧎';
-            text = 'Oturma';
-        } else if (angle >= OTURMA_THRESHOLD && angle < RUKU_THRESHOLD) {
-            pos = 'ruku';
-            emoji = '🙇';
-            text = 'Rükû';
-        } else {
+        if (angle < RUKU_THRESHOLD) {
             pos = 'kıyam';
             emoji = '🧍';
             text = 'Kıyam';
+        } else if (angle >= RUKU_THRESHOLD && angle < OTURMA_THRESHOLD) {
+            pos = 'ruku';
+            emoji = '🙇';
+            text = 'Rükû';
+        } else if (angle >= OTURMA_THRESHOLD && angle < SECDE_THRESHOLD) {
+            pos = 'oturma';
+            emoji = '🧎';
+            text = 'Oturma';
+        } else {
+            pos = 'secde';
+            emoji = '🕌';
+            text = 'Secde';
         }
 
         document.getElementById('namaz-position').innerText = emoji;
         document.getElementById('namaz-position-text').innerText = text;
 
-        // Sıralı geçiş kontrolü
+        // Sıralı geçiş kontrolü (namazdaki sıraya göre)
         if (pos !== lastPos) {
             var gecerli = false;
             // Kıyam -> Rükû
@@ -326,7 +324,7 @@
         }
     }
 
-    // ========== KALİBRASYON (Yeni sistemle) ==========
+    // ========== KALİBRASYON (Yeni sistem: dik=0, yatay=90) ==========
     function calibrate(pos) {
         if (currentAngle === undefined || currentAngle === null) {
             alert('Sensörü başlatın ve telefonu hareket ettirin.');
@@ -355,37 +353,37 @@
             return;
         }
 
-        // Açıları sırala (küçükten büyüğe)
+        // Açıları sırala (küçükten büyüğe) – bu sistemde Kıyam en küçük, Secde en büyük olmalı
         var angles = [kiyamAngle, rukuAngle, oturmaAngle, secdeAngle];
         angles.sort(function(a, b) { return a - b; });
 
-        // En küçük = Secde (yatay), en büyük = Kıyam (dik)
-        var sortedSecde = angles[0];
-        var sortedOturma = angles[1];
-        var sortedRuku = angles[2];
-        var sortedKiyam = angles[3];
+        // En küçük = Kıyam, en büyük = Secde
+        var sortedKiyam = angles[0];
+        var sortedRuku = angles[1];
+        var sortedOturma = angles[2];
+        var sortedSecde = angles[3];
 
         // Eşikleri hesapla
-        var secdeEsik = Math.round((sortedSecde + sortedOturma) / 2);
-        var oturmaEsik = Math.round((sortedOturma + sortedRuku) / 2);
-        var rukuEsik = Math.round((sortedRuku + sortedKiyam) / 2);
+        var rukuEsik = Math.round((sortedKiyam + sortedRuku) / 2);
+        var oturmaEsik = Math.round((sortedRuku + sortedOturma) / 2);
+        var secdeEsik = Math.round((sortedOturma + sortedSecde) / 2);
 
         // Tolerans ekle
-        if (secdeEsik - sortedSecde < 3) secdeEsik = sortedSecde + 3;
-        if (oturmaEsik - sortedOturma < 3) oturmaEsik = sortedOturma + 3;
-        if (rukuEsik - sortedRuku < 3) rukuEsik = sortedRuku + 3;
-        if (secdeEsik >= oturmaEsik) oturmaEsik = secdeEsik + 3;
-        if (oturmaEsik >= rukuEsik) rukuEsik = oturmaEsik + 3;
+        if (rukuEsik - sortedKiyam < 3) rukuEsik = sortedKiyam + 3;
+        if (oturmaEsik - sortedRuku < 3) oturmaEsik = sortedRuku + 3;
+        if (secdeEsik - sortedOturma < 3) secdeEsik = sortedOturma + 3;
+        if (rukuEsik >= oturmaEsik) oturmaEsik = rukuEsik + 3;
+        if (oturmaEsik >= secdeEsik) secdeEsik = oturmaEsik + 3;
 
-        SECDE_THRESHOLD = secdeEsik;
-        OTURMA_THRESHOLD = oturmaEsik;
         RUKU_THRESHOLD = rukuEsik;
+        OTURMA_THRESHOLD = oturmaEsik;
+        SECDE_THRESHOLD = secdeEsik;
 
-        document.getElementById('cal-status').innerHTML = '✅ Kalibrasyon uygulandı! Secde: 0°-' + SECDE_THRESHOLD + '°, Oturma: ' + SECDE_THRESHOLD + '-' + OTURMA_THRESHOLD + '°, Rükû: ' + OTURMA_THRESHOLD + '-' + RUKU_THRESHOLD + '°, Kıyam: ' + RUKU_THRESHOLD + '-90°';
-        document.getElementById('secde-aralık').innerText = '0° - ' + SECDE_THRESHOLD + '°';
-        document.getElementById('oturma-aralık').innerText = SECDE_THRESHOLD + '° - ' + OTURMA_THRESHOLD + '°';
-        document.getElementById('ruku-aralık').innerText = OTURMA_THRESHOLD + '° - ' + RUKU_THRESHOLD + '°';
-        document.getElementById('kiyam-aralık').innerText = RUKU_THRESHOLD + '° - 90°';
+        document.getElementById('cal-status').innerHTML = '✅ Kalibrasyon uygulandı! Kıyam: 0°-' + RUKU_THRESHOLD + '°, Rükû: ' + RUKU_THRESHOLD + '-' + OTURMA_THRESHOLD + '°, Oturma: ' + OTURMA_THRESHOLD + '-' + SECDE_THRESHOLD + '°, Secde: ' + SECDE_THRESHOLD + '-90°';
+        document.getElementById('kiyam-aralık').innerText = '0° - ' + RUKU_THRESHOLD + '°';
+        document.getElementById('ruku-aralık').innerText = RUKU_THRESHOLD + '° - ' + OTURMA_THRESHOLD + '°';
+        document.getElementById('oturma-aralık').innerText = OTURMA_THRESHOLD + '° - ' + SECDE_THRESHOLD + '°';
+        document.getElementById('secde-aralık').innerText = SECDE_THRESHOLD + '° - 90°';
         resetNamaz();
     }
 
@@ -396,11 +394,11 @@
         document.getElementById('cal-oturma').innerText = '--°';
         document.getElementById('cal-secde').innerText = '--°';
         document.getElementById('cal-status').innerHTML = 'Kalibrasyon sıfırlandı.';
-        document.getElementById('secde-aralık').innerText = '0° - ?';
-        document.getElementById('oturma-aralık').innerText = '? - ?';
+        document.getElementById('kiyam-aralık').innerText = '0° - ?';
         document.getElementById('ruku-aralık').innerText = '? - ?';
-        document.getElementById('kiyam-aralık').innerText = '? - 90°';
-        SECDE_THRESHOLD = 15; OTURMA_THRESHOLD = 30; RUKU_THRESHOLD = 45;
+        document.getElementById('oturma-aralık').innerText = '? - ?';
+        document.getElementById('secde-aralık').innerText = '? - 90°';
+        RUKU_THRESHOLD = 30; OTURMA_THRESHOLD = 50; SECDE_THRESHOLD = 70;
         resetNamaz();
     }
 
@@ -415,7 +413,7 @@
         document.getElementById('namaz-position').innerText = '🧍';
     }
 
-    // ========== DİĞER MODÜLLER (öncekiyle aynı) ==========
+    // ========== DİĞER MODÜLLER (aynı) ==========
     var activityListener = false;
     function initActivitySensor() {
         if (activityListener) return;
@@ -583,7 +581,7 @@
     window.addEventListener('beforeunload', function() {
         if(isMicActive) stopMic();
     });
-    console.log('📡 Asistan Sensör v3.4 - Açı sistemi: 0°=yatay, 90°=dik');
+    console.log('📡 Asistan Sensör v3.5 - Dik=0, Yatay=90 sistemi');
 </script>
 </body>
 </html>
