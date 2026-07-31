@@ -59,6 +59,7 @@
         .calibration-box .cal-range { font-size:13px; color:#7a8fc0; margin-top:4px; }
         .calibration-box .cal-hint { font-size:12px; color:#7a8fc0; margin-top:2px; }
         .calibration-box .cal-warning { color:#f87171; font-weight:600; margin-top:4px; padding:8px; background:#2a0a0a; border-radius:8px; display:none; }
+        .pos-bos { color:#f87171; }
     </style>
 </head>
 <body>
@@ -142,9 +143,9 @@
         </div>
         <button class="btn btn-danger" onclick="resetNamaz()">🔄 Sıfırla</button>
         <div class="status-msg">
-            📌 Geçerli geçişler: <strong>Kıyam→Rükû, Rükû→Kıyam, Kıyam→Secde, Secde→Oturma, Oturma→Secde, Secde→Kıyam</strong><br>
-            ⏱️ Pozisyon değişimi için <strong>1.5 saniye</strong> sabit kalma şartı.<br>
-            ⚠️ Geçersiz hareketler görünmez, ses çıkmaz.
+            📌 Sıralı geçiş: <strong>Kıyam→Rükû→Kıyam→Secde(1)→Oturma→Secde(2)→Kıyam</strong><br>
+            ⏱️ Her pozisyon <strong>1.5 sn</strong> sabit kalmalıdır.<br>
+            ⚠️ Geçersiz hareketler ekranda görünmez, ses çıkmaz.
         </div>
     </div>
 
@@ -182,7 +183,6 @@
 </div>
 
 <script>
-    // ========== GLOBAL ==========
     var currentPage = 'home';
     var micStream = null, audioContext = null, isMicActive = false;
     var breathCount = 0, breathRate = 0, lastBreathTime = Date.now(), isInhaling = true;
@@ -194,13 +194,13 @@
     var KIYAM_ANGLE = 0, RUKU_ANGLE = 30, OTURMA_ANGLE = 50, SECDE_ANGLE = 70;
     var namazListener = false;
     var TOLERANCE = 5;
+    var STABILITY_TIME = 1500; // 1.5 saniye
 
-    // ---- Zaman filtreli pozisyon değişimi ----
-    var STABLE_TIME = 1500; // 1.5 saniye
-    var displayPos = 'kıyam';      // Ekranda gösterilen pozisyon
-    var lastStablePos = 'kıyam';   // Son kararlı pozisyon (geçerli geçiş kontrolü için)
-    var stableStartTime = Date.now(); // Mevcut pozisyonun başlangıç zamanı
-    var currentDetectedPos = 'kıyam'; // Her frame'de tespit edilen pozisyon
+    // lastPos: son geçerli pozisyon
+    var lastPos = 'kıyam';
+    // Geçerli pozisyon için kararlılık sayacı
+    var currentDetectedPos = null;
+    var stabilityStartTime = 0;
 
     function showPage(id) {
         document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
@@ -245,7 +245,7 @@
         window.speechSynthesis.speak(u);
     }
 
-    function getDisplayText(pos) {
+    function getPosName(pos) {
         switch(pos) {
             case 'kıyam': return 'Kıyam';
             case 'ruku': return 'Rükû';
@@ -255,7 +255,7 @@
         }
     }
 
-    function getDisplayEmoji(pos) {
+    function getPosEmoji(pos) {
         switch(pos) {
             case 'kıyam': return '🧍';
             case 'ruku': return '🙇';
@@ -266,14 +266,13 @@
     }
 
     function updateDisplay(pos) {
-        document.getElementById('namaz-position').innerText = getDisplayEmoji(pos);
-        document.getElementById('namaz-position-text').innerText = getDisplayText(pos);
+        document.getElementById('namaz-position').innerText = getPosEmoji(pos);
+        document.getElementById('namaz-position-text').innerText = getPosName(pos);
         document.getElementById('namaz-rekat').innerText = namazRekat;
         document.getElementById('namaz-ruku').innerText = namazRuku;
         document.getElementById('namaz-secde').innerText = namazSecde;
     }
 
-    // ========== NAMAZ ALGILAMA (Zaman Filtreli) ==========
     function handleNamaz(event) {
         if (currentPage !== 'namaz') return;
         var acc = event.accelerationIncludingGravity;
@@ -298,8 +297,8 @@
         document.getElementById('debug-state').className = 'status-ok';
         document.getElementById('namaz-tilt').innerText = Math.round(angle);
 
-        // 1. Tespit edilen pozisyon (tolerans ile)
-        var detectedPos = 'bos';
+        // 1. Hangi pozisyona denk geliyor?
+        var detectedPos = null;
         if (Math.abs(angle - KIYAM_ANGLE) <= TOLERANCE) {
             detectedPos = 'kıyam';
         } else if (Math.abs(angle - RUKU_ANGLE) <= TOLERANCE) {
@@ -308,58 +307,81 @@
             detectedPos = 'oturma';
         } else if (Math.abs(angle - SECDE_ANGLE) <= TOLERANCE) {
             detectedPos = 'secde';
+        } else {
+            detectedPos = null; // boş
         }
 
-        // 2. Eğer tespit edilen pozisyon değiştiyse veya bos ise, zaman sayacını sıfırla
+        var now = Date.now();
+
+        // 2. Eğer tespit edilen pozisyon değiştiyse veya null ise sayacı sıfırla
         if (detectedPos !== currentDetectedPos) {
             currentDetectedPos = detectedPos;
-            stableStartTime = Date.now();
+            stabilityStartTime = now;
         }
 
-        // 3. Eğer tespit edilen pozisyon bos değilse ve 1.5 saniye geçtiyse
-        if (detectedPos !== 'bos' && (Date.now() - stableStartTime) >= STABLE_TIME) {
-            // Geçerli bir pozisyon ve süre dolmuş, stabil kabul et
-            var newPos = detectedPos;
-            // Eğer yeni pozisyon mevcut displayPos'tan farklıysa, geçiş kontrolü yap
-            if (newPos !== displayPos) {
-                // Geçerli geçişleri kontrol et
-                var gecerli = false;
-                // Geçerli geçişler: Kıyam->Rükû, Rükû->Kıyam, Kıyam->Secde, Secde->Oturma, Oturma->Secde, Secde->Kıyam
-                if (displayPos === 'kıyam' && newPos === 'ruku') {
-                    namazRuku++;
-                    gecerli = true;
-                } else if (displayPos === 'ruku' && newPos === 'kıyam') {
-                    gecerli = true;
-                } else if (displayPos === 'kıyam' && newPos === 'secde') {
-                    namazSecde++; // 1. secde
-                    gecerli = true;
-                } else if (displayPos === 'secde' && newPos === 'oturma') {
-                    gecerli = true;
-                } else if (displayPos === 'oturma' && newPos === 'secde') {
-                    namazSecde++; // 2. secde
-                    gecerli = true;
-                } else if (displayPos === 'secde' && newPos === 'kıyam') {
-                    namazRekat++;
-                    speakText(namazRekat + '. rekat');
-                    gecerli = true;
-                }
-                // Diğer tüm geçişler geçersiz
-
-                if (gecerli) {
-                    // Geçerli geçiş, ekranı güncelle
-                    displayPos = newPos;
-                    updateDisplay(displayPos);
-                    // Sadece rekat değil, pozisyonu da sesli söyle (rekat zaten söylendi)
-                    if (newPos !== 'kıyam' || displayPos !== 'kıyam') {
-                        speakText(getDisplayText(newPos));
-                    }
-                }
-                // Geçersiz geçiş: ekran değişmez, displayPos aynı kalır, lastStablePos güncellenmez
-            }
-            // Eğer aynı pozisyon ise, hiçbir şey yapma (zaten aynı)
+        // 3. Eğer tespit edilen pozisyon null ise (boş) veya kararlılık süresi dolmadıysa hiçbir şey yapma
+        if (detectedPos === null) {
+            return;
         }
-        // Eğer detectedPos 'bos' ise veya süre dolmadıysa, hiçbir şey yapma
-        // displayPos korunur
+
+        if (now - stabilityStartTime < STABILITY_TIME) {
+            return; // henüz kararlı değil
+        }
+
+        // 4. Kararlı pozisyon elde ettik, lastPos ile karşılaştır
+        var newPos = detectedPos;
+
+        // Eğer aynı pozisyonda kalmaya devam ediyorsa hiçbir şey yapma
+        if (newPos === lastPos) {
+            return;
+        }
+
+        // 5. Geçiş kontrolü
+        var gecerli = false;
+
+        // Kıyam -> Rükû
+        if (lastPos === 'kıyam' && newPos === 'ruku') {
+            namazRuku++;
+            gecerli = true;
+        }
+        // Rükû -> Kıyam
+        else if (lastPos === 'ruku' && newPos === 'kıyam') {
+            gecerli = true;
+        }
+        // Kıyam -> Secde (1. secde)
+        else if (lastPos === 'kıyam' && newPos === 'secde') {
+            namazSecde++; // 1. secde
+            gecerli = true;
+        }
+        // Secde -> Oturma
+        else if (lastPos === 'secde' && newPos === 'oturma') {
+            gecerli = true;
+        }
+        // Oturma -> Secde (2. secde)
+        else if (lastPos === 'oturma' && newPos === 'secde') {
+            namazSecde++; // 2. secde
+            gecerli = true;
+        }
+        // Secde -> Kıyam (rekat bitti)
+        else if (lastPos === 'secde' && newPos === 'kıyam') {
+            namazRekat++;
+            speakText(namazRekat + '. rekat');
+            gecerli = true;
+        }
+        // Diğer tüm geçişler yasak (kıyam->oturma, ruku->secde, oturma->kıyam, vb.)
+        else {
+            gecerli = false;
+        }
+
+        if (gecerli) {
+            // lastPos'u güncelle
+            lastPos = newPos;
+            // Ekranı güncelle
+            updateDisplay(lastPos);
+            // Sesli söyle (rekat zaten söylendi, pozisyonu söyle)
+            speakText(getPosName(lastPos));
+        }
+        // Geçersiz geçiş: hiçbir şey yapma
     }
 
     // ========== KALİBRASYON ==========
@@ -401,11 +423,9 @@
         document.getElementById('oturma-aralık').innerText = OTURMA_ANGLE + '±5°';
         document.getElementById('secde-aralık').innerText = SECDE_ANGLE + '±5°';
         resetNamaz();
-        // Başlangıç durumunu sıfırla
-        displayPos = 'kıyam';
-        lastStablePos = 'kıyam';
-        currentDetectedPos = 'kıyam';
-        stableStartTime = Date.now();
+        lastPos = 'kıyam';
+        currentDetectedPos = null;
+        stabilityStartTime = 0;
         updateDisplay('kıyam');
     }
 
@@ -422,10 +442,9 @@
         document.getElementById('secde-aralık').innerText = '?±5°';
         KIYAM_ANGLE = 0; RUKU_ANGLE = 30; OTURMA_ANGLE = 50; SECDE_ANGLE = 70;
         resetNamaz();
-        displayPos = 'kıyam';
-        lastStablePos = 'kıyam';
-        currentDetectedPos = 'kıyam';
-        stableStartTime = Date.now();
+        lastPos = 'kıyam';
+        currentDetectedPos = null;
+        stabilityStartTime = 0;
         updateDisplay('kıyam');
     }
 
@@ -600,18 +619,16 @@
             document.getElementById('debug-state').className = 'status-err';
         }
         updateFloorUI();
-        // Başlangıç durumu
-        displayPos = 'kıyam';
-        lastStablePos = 'kıyam';
-        currentDetectedPos = 'kıyam';
-        stableStartTime = Date.now();
+        lastPos = 'kıyam';
+        currentDetectedPos = null;
+        stabilityStartTime = 0;
         updateDisplay('kıyam');
     });
 
     window.addEventListener('beforeunload', function() {
         if(isMicActive) stopMic();
     });
-    console.log('📡 Asistan Sensör v4.1 - Zaman filtresi (1.5sn) ve sıralı geçişler eklendi');
+    console.log('📡 Asistan Sensör v4.1 - Kararlılık 1.5sn, tam geçiş kontrolü, TTS');
 </script>
 </body>
 </html>
