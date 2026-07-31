@@ -57,54 +57,28 @@
         .calibration-box .cal-value { font-size:18px; font-weight:700; color:#facc15; }
         .calibration-box .btn { padding:10px; font-size:14px; width:auto; flex:1; margin:0 4px; }
         .calibration-box .cal-range { font-size:13px; color:#7a8fc0; margin-top:4px; }
-        .calibration-box .cal-warning { color:#f87171; font-weight:600; margin-top:4px; padding:8px; background:#2a0a0a; border-radius:8px; }
         .calibration-box .cal-hint { font-size:12px; color:#7a8fc0; margin-top:2px; }
     </style>
 </head>
 <body>
 <div id="app">
 
-    <!-- ANA MENÜ -->
     <div id="page-home" class="page active">
         <div class="header">
             <h1>📡 Asistan Sensör</h1>
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="icon-badge">v3.0</span>
+                <span class="icon-badge">v3.2</span>
                 <a href="index.html" class="btn" style="background: #0b2b5c; padding: 6px 12px; font-size: 0.8rem; border-radius: 30px; text-decoration: none; color: white;">🕌 Vakitler</a>
             </div>
         </div>
         <p style="color:#8899bb; margin-bottom:4px; font-size:14px;">Telefonunuzun tüm sensörleri tek uygulamada</p>
         <div class="menu-grid">
-            <div class="menu-card" onclick="showPage('namaz')">
-                <span class="emoji">🕌</span>
-                <h3>Namaz</h3>
-                <p>Rekat & hareket analizi</p>
-            </div>
-            <div class="menu-card" onclick="showPage('activity')">
-                <span class="emoji">🚶</span>
-                <h3>Aktivite</h3>
-                <p>Yürüme / Koşma</p>
-            </div>
-            <div class="menu-card" onclick="showPage('floor')">
-                <span class="emoji">🏢</span>
-                <h3>Kat Sayacı</h3>
-                <p>Merdiven / Asansör</p>
-            </div>
-            <div class="menu-card" onclick="showPage('breath')">
-                <span class="emoji">🫁</span>
-                <h3>Nefes Analizi</h3>
-                <p>Stres & ritim</p>
-            </div>
-            <div class="menu-card" onclick="showPage('alarm')">
-                <span class="emoji">🔒</span>
-                <h3>Hırsız Alarmı</h3>
-                <p>Telefon koruma</p>
-            </div>
-            <div class="menu-card" onclick="showPage('reports')">
-                <span class="emoji">📊</span>
-                <h3>Günlük Rapor</h3>
-                <p>İstatistikler</p>
-            </div>
+            <div class="menu-card" onclick="showPage('namaz')"><span class="emoji">🕌</span><h3>Namaz</h3><p>Rekat & hareket analizi</p></div>
+            <div class="menu-card" onclick="showPage('activity')"><span class="emoji">🚶</span><h3>Aktivite</h3><p>Yürüme / Koşma</p></div>
+            <div class="menu-card" onclick="showPage('floor')"><span class="emoji">🏢</span><h3>Kat Sayacı</h3><p>Merdiven / Asansör</p></div>
+            <div class="menu-card" onclick="showPage('breath')"><span class="emoji">🫁</span><h3>Nefes Analizi</h3><p>Stres & ritim</p></div>
+            <div class="menu-card" onclick="showPage('alarm')"><span class="emoji">🔒</span><h3>Hırsız Alarmı</h3><p>Telefon koruma</p></div>
+            <div class="menu-card" onclick="showPage('reports')"><span class="emoji">📊</span><h3>Günlük Rapor</h3><p>İstatistikler</p></div>
         </div>
         <div class="footer-menu">
             <div class="footer-item active"><span>🏠</span>Ana</div>
@@ -113,23 +87,19 @@
         </div>
     </div>
 
-    <!-- NAMAZ -->
     <div id="page-namaz" class="page">
         <div class="header">
             <button class="back-btn" onclick="showPage('home')">‹</button>
             <h1 style="font-size:20px;">🕌 Namaz Hareketleri</h1>
             <span style="width:30px;"></span>
         </div>
-
         <div class="sensor-box" style="background:#1e2a4a;">
             <div style="font-size:18px; color:#aab9f0;">Mevcut Pozisyon</div>
             <div id="namaz-position" class="big-number" style="font-size:52px;">🧍</div>
             <div id="namaz-position-text" style="font-size:22px; font-weight:600; color:#fff;">Kıyam</div>
             <div style="margin-top:8px; font-size:14px; color:#7a8fc0;">Eğim: <span id="namaz-tilt">0</span>°</div>
         </div>
-
         <button class="btn btn-primary" onclick="manualStartSensor()">🔄 Sensörü Başlat / İzni Yenile</button>
-
         <div class="debug-panel">
             <div>📊 <strong>Ham Sensör Verileri</strong></div>
             <div>X: <span class="val" id="debug-x">0.00</span> &nbsp;|&nbsp; Y: <span class="val" id="debug-y">0.00</span> &nbsp;|&nbsp; Z: <span class="val" id="debug-z">0.00</span></div>
@@ -137,8 +107,6 @@
             <div>📐 Hesaplanan Açı: <span class="val" id="debug-angle">0.0</span>°</div>
             <div>🔵 Sensör Durumu: <span id="debug-state" class="status-err">Başlatılmadı</span></div>
         </div>
-
-        <!-- KALİBRASYON (Kıyam, Rükû, Oturma, Secde) -->
         <div class="calibration-box">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <span style="font-weight:600; color:#aab9f0;">⚙️ Kalibrasyon (4 pozisyon)</span>
@@ -159,16 +127,11 @@
                 <button class="btn btn-primary" onclick="applyCalibration()" style="flex:2;">✅ Uygula</button>
                 <button class="btn btn-secondary" onclick="resetCalibration()" style="flex:1;">↺ Sıfırla</button>
             </div>
-            <div style="margin-top:8px; font-size:13px; color:#7a8fc0; text-align:center;">
-                <span id="cal-status">Henüz kalibrasyon yapılmadı.</span>
-            </div>
-            <div id="cal-warning" class="cal-warning" style="display:none;"></div>
+            <div style="margin-top:8px; font-size:13px; color:#7a8fc0; text-align:center;"><span id="cal-status">Henüz kalibrasyon yapılmadı.</span></div>
             <div class="cal-range">
                 <span>📏 Kıyam: <strong id="kiyam-aralık">0° - ?</strong> &nbsp;|&nbsp; Rükû: <strong id="ruku-aralık">? - ?</strong> &nbsp;|&nbsp; Oturma: <strong id="oturma-aralık">? - ?</strong> &nbsp;|&nbsp; Secde: <strong id="secde-aralık">? - 90°</strong></span>
             </div>
         </div>
-
-        <!-- SAYAÇLAR -->
         <div class="stat-grid">
             <div class="stat-card"><div class="label">Rekât</div><div class="value" id="namaz-rekat">0</div></div>
             <div class="stat-card"><div class="label">Rükû</div><div class="value" id="namaz-ruku">0</div></div>
@@ -176,12 +139,10 @@
             <div class="stat-card"><div class="label">Süre (sn)</div><div class="value" id="namaz-sure">0</div></div>
         </div>
         <button class="btn btn-danger" onclick="resetNamaz()">🔄 Sıfırla</button>
-        <div class="status-msg">
-            📌 Kalibrasyon sırası: <strong>Kıyam → Rükû → Oturma → Secde</strong> (sırayla kaydedip Uygula'ya basın)
-        </div>
+        <div class="status-msg">📌 Kalibrasyon sırası: <strong>Kıyam → Rükû → Oturma → Secde</strong> (sırayla kaydedip Uygula'ya basın)</div>
     </div>
 
-    <!-- DİĞER MODÜLLER (KISA) -->
+    <!-- Diğer modüller (öncekiyle aynı) -->
     <div id="page-activity" class="page"><div class="header"><button class="back-btn" onclick="showPage('home')">‹</button><h1>🚶 Aktivite</h1><span style="width:30px;"></span></div>
         <div class="sensor-box"><div style="font-size:18px;color:#aab9f0;">Anlık Durum</div><div id="activity-status" style="font-size:40px;font-weight:700;color:#4ade80;">🟢 Oturma</div><div class="progress-bar"><div class="progress-fill" id="activity-bar" style="width:10%;"></div></div><div style="display:flex;justify-content:space-between;font-size:12px;color:#6a7fa8;margin-top:4px;"><span>Düşük</span><span>Orta</span><span>Yüksek</span></div></div>
         <div class="stat-grid"><div class="stat-card"><div class="label">Adım</div><div class="value" id="activity-steps">0</div></div><div class="stat-card"><div class="label">Kalori</div><div class="value" id="activity-cal">0</div><div class="sub">kcal</div></div></div>
@@ -212,25 +173,22 @@
         <div style="background:#151e32;border-radius:20px;padding:20px;margin-top:10px;"><p style="color:#8899cc;">🧠 <span class="highlight">Yorum</span></p><p id="ai-comment" style="color:#d0ddff;font-size:15px;">Bugün hareketliliğin normal.</p></div>
         <button class="btn btn-secondary" onclick="refreshReports()" style="background:#2a3457;">🔄 Yenile</button>
     </div>
-
 </div>
 
 <script>
-    // ================= GLOBAL =================
-    let currentPage = 'home';
-    let micStream = null, audioContext = null, isMicActive = false;
-    let breathCount = 0, breathRate = 0, lastBreathTime = Date.now(), isInhaling = true;
-    let alarmTriggered = false, stepCount = 0, todayFloors = 0;
-    let namazRekat = 0, namazRuku = 0, namazSecde = 0, namazSure = 0;
-    let namazTimer = null, lastPos = 'kıyam';
-    let currentAngle = 0;
-    let kiyamAngle = null, rukuAngle = null, oturmaAngle = null, secdeAngle = null;
-    let RUKU_THRESHOLD = 30, OTURMA_THRESHOLD = 50, SECDE_THRESHOLD = 70;
-    let namazListener = false;
+    var currentPage = 'home';
+    var micStream = null, audioContext = null, isMicActive = false;
+    var breathCount = 0, breathRate = 0, lastBreathTime = Date.now(), isInhaling = true;
+    var alarmTriggered = false, stepCount = 0, todayFloors = 0;
+    var namazRekat = 0, namazRuku = 0, namazSecde = 0, namazSure = 0;
+    var namazTimer = null, lastPos = 'kıyam';
+    var currentAngle = 0;
+    var kiyamAngle = null, rukuAngle = null, oturmaAngle = null, secdeAngle = null;
+    var RUKU_THRESHOLD = 30, OTURMA_THRESHOLD = 50, SECDE_THRESHOLD = 70;
+    var namazListener = false;
 
-    // ================= SAYFA GEÇİSİ =================
     function showPage(id) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
         document.getElementById('page-' + id).classList.add('active');
         currentPage = id;
         if (id === 'alarm') initAlarmSensor();
@@ -239,15 +197,14 @@
         if (id === 'floor') updateFloorUI();
     }
 
-    // ================= NAMAZ =================
     function manualStartSensor() {
-        const stateEl = document.getElementById('debug-state');
+        var stateEl = document.getElementById('debug-state');
         if (window.DeviceMotionEvent) {
             if (typeof DeviceMotionEvent.requestPermission === 'function') {
-                DeviceMotionEvent.requestPermission().then(state => {
+                DeviceMotionEvent.requestPermission().then(function(state) {
                     if (state === 'granted') startListening();
                     else { stateEl.innerHTML = '❌ İzin reddedildi'; stateEl.className = 'status-err'; }
-                }).catch(err => { stateEl.innerHTML = '⚠️ ' + err.message; stateEl.className = 'status-err'; });
+                }).catch(function(err) { stateEl.innerHTML = '⚠️ ' + err.message; stateEl.className = 'status-err'; });
             } else { startListening(); }
         } else { stateEl.innerHTML = '❌ Destek yok'; stateEl.className = 'status-err'; }
     }
@@ -259,19 +216,20 @@
         document.getElementById('debug-state').innerHTML = '✅ Dinleniyor...';
         document.getElementById('debug-state').className = 'status-ok';
         if (namazTimer) clearInterval(namazTimer);
-        namazTimer = setInterval(() => {
+        namazTimer = setInterval(function() {
             if (currentPage === 'namaz') { namazSure++; document.getElementById('namaz-sure').innerText = namazSure; }
         }, 1000);
     }
 
+    // ========== YENİ handleNamaz (SIRALI GEÇİŞLER) ==========
     function handleNamaz(event) {
         if (currentPage !== 'namaz') return;
-        const acc = event.accelerationIncludingGravity;
+        var acc = event.accelerationIncludingGravity;
         if (!acc) { document.getElementById('debug-state').innerHTML = '⚠️ Veri yok'; return; }
-        let x = acc.x || 0, y = acc.y || 0, z = acc.z || 0;
-        const horizontal = Math.sqrt(x*x + y*y);
-        const vertical = Math.abs(z);
-        let angle = 0;
+        var x = acc.x || 0, y = acc.y || 0, z = acc.z || 0;
+        var horizontal = Math.sqrt(x*x + y*y);
+        var vertical = Math.abs(z);
+        var angle = 0;
         if (horizontal + vertical > 0.5) angle = Math.atan2(horizontal, vertical) * 180 / Math.PI;
         angle = Math.min(angle, 90);
         currentAngle = angle;
@@ -286,109 +244,104 @@
         document.getElementById('debug-state').className = 'status-ok';
         document.getElementById('namaz-tilt').innerText = Math.round(angle);
 
-        let pos = 'kıyam', emoji = '🧍', text = 'Kıyam';
+        // Pozisyon tespiti (açı eşiklerine göre)
+        var pos = 'kıyam', emoji = '🧍', text = 'Kıyam';
         if (angle > RUKU_THRESHOLD && angle < OTURMA_THRESHOLD) {
-            pos = 'ruku';
-            emoji = '🙇';
-            text = 'Rükû';
+            pos = 'ruku'; emoji = '🙇'; text = 'Rükû';
         } else if (angle >= OTURMA_THRESHOLD && angle < SECDE_THRESHOLD) {
-            pos = 'oturma';
-            emoji = '🧎';
-            text = 'Oturma';
+            pos = 'oturma'; emoji = '🧎'; text = 'Oturma';
         } else if (angle >= SECDE_THRESHOLD) {
-            pos = 'secde';
-            emoji = '🕌';
-            text = 'Secde';
+            pos = 'secde'; emoji = '🕌'; text = 'Secde';
         } else {
-            pos = 'kıyam';
-            emoji = '🧍';
-            text = 'Kıyam';
+            pos = 'kıyam'; emoji = '🧍'; text = 'Kıyam';
         }
 
         document.getElementById('namaz-position').innerText = emoji;
         document.getElementById('namaz-position-text').innerText = text;
 
-        // --- REKAT SAYMA MANTIĞI (Kıyam → Rükû → Kıyam → Secde → Oturma → Secde → Kıyam) ---
+        // Sıralı geçiş kontrolü (namazdaki sıraya göre)
         if (pos !== lastPos) {
-            if (pos === 'ruku' && lastPos === 'kıyam') {
+            var gecerli = false;
+            // Kıyam -> Rükû
+            if (lastPos === 'kıyam' && pos === 'ruku') {
                 namazRuku++;
-            } else if (pos === 'secde' && lastPos === 'kıyam') {
-                namazSecde++; // 1. secde
-            } else if (pos === 'secde' && lastPos === 'oturma') {
-                namazSecde++; // 2. secde
-            } else if (pos === 'kıyam' && lastPos === 'secde') {
-                // İkinci secdeden sonra kıyam → Rekât bitti
+                gecerli = true;
+            }
+            // Rükû -> Kıyam
+            else if (lastPos === 'ruku' && pos === 'kıyam') {
+                gecerli = true;
+            }
+            // Kıyam -> Secde (1. secde)
+            else if (lastPos === 'kıyam' && pos === 'secde') {
+                namazSecde++;
+                gecerli = true;
+            }
+            // Secde -> Oturma
+            else if (lastPos === 'secde' && pos === 'oturma') {
+                gecerli = true;
+            }
+            // Oturma -> Secde (2. secde)
+            else if (lastPos === 'oturma' && pos === 'secde') {
+                namazSecde++;
+                gecerli = true;
+            }
+            // Secde -> Kıyam (rekat tamamlandı)
+            else if (lastPos === 'secde' && pos === 'kıyam') {
                 namazRekat++;
                 try {
                     if (window.speechSynthesis) {
-                        const u = new SpeechSynthesisUtterance(namazRekat + '. rekat');
+                        var u = new SpeechSynthesisUtterance(namazRekat + '. rekat');
                         u.lang = 'tr-TR';
                         u.rate = 0.9;
                         window.speechSynthesis.cancel();
                         window.speechSynthesis.speak(u);
                     }
                 } catch(e) {}
+                gecerli = true;
             }
-            lastPos = pos;
-            document.getElementById('namaz-rekat').innerText = namazRekat;
-            document.getElementById('namaz-ruku').innerText = namazRuku;
-            document.getElementById('namaz-secde').innerText = namazSecde;
+            // Diğer geçişler (Kıyam->Oturma, Oturma->Kıyam, Rükû->Secde, Secde->Rükû vb.) geçersiz, sayma yapma
+            // ve lastPos'u güncelleme
+            else {
+                gecerli = false;
+            }
+
+            // Eğer geçerli bir geçiş ise lastPos'u güncelle
+            if (gecerli) {
+                lastPos = pos;
+            }
+            // Geçersiz geçişte lastPos değişmez (sıralama korunur)
         }
     }
 
-    // ================= KALİBRASYON =================
+    // ========== KALİBRASYON (Aynı) ==========
     function calibrate(pos) {
         if (currentAngle === undefined || currentAngle === null) { alert('Sensörü başlatın ve telefonu hareket ettirin.'); return; }
-        const angle = Math.round(currentAngle);
-        let warningEl = document.getElementById('cal-warning');
-        warningEl.style.display = 'none';
-
+        var angle = Math.round(currentAngle);
         if (pos === 'kiyam') {
             kiyamAngle = angle;
             document.getElementById('cal-kiyam').innerText = angle + '°';
         } else if (pos === 'ruku') {
-            if (kiyamAngle !== null && angle < kiyamAngle) {
-                warningEl.style.display = 'block';
-                warningEl.innerText = '⚠️ Rükû açısı Kıyam\'dan küçük! Lütfen dik tutup Kıyam, eğilip Rükû kaydedin.';
-            }
             rukuAngle = angle;
             document.getElementById('cal-ruku').innerText = angle + '°';
         } else if (pos === 'oturma') {
-            if (rukuAngle !== null && angle < rukuAngle) {
-                warningEl.style.display = 'block';
-                warningEl.innerText = '⚠️ Oturma açısı Rükû\'dan küçük! Lütfen Rükû ile Secde arasında bir açıda kaydedin.';
-            }
             oturmaAngle = angle;
             document.getElementById('cal-oturma').innerText = angle + '°';
         } else if (pos === 'secde') {
-            if (oturmaAngle !== null && angle < oturmaAngle) {
-                warningEl.style.display = 'block';
-                warningEl.innerText = '⚠️ Secde açısı Oturma\'dan küçük! Telefonu yatırıp Secde kaydedin.';
-            }
             secdeAngle = angle;
             document.getElementById('cal-secde').innerText = angle + '°';
         }
-
         document.getElementById('cal-status').innerHTML = '✅ ' + pos.charAt(0).toUpperCase() + pos.slice(1) + ' kaydedildi (' + angle + '°)';
-
         if (kiyamAngle !== null && rukuAngle !== null && oturmaAngle !== null && secdeAngle !== null) {
-            if (kiyamAngle < rukuAngle && rukuAngle < oturmaAngle && oturmaAngle < secdeAngle) {
-                let rukuEşik = Math.round((kiyamAngle + rukuAngle) / 2);
-                let oturmaEşik = Math.round((rukuAngle + oturmaAngle) / 2);
-                let secdeEşik = Math.round((oturmaAngle + secdeAngle) / 2);
-                if (rukuEşik - kiyamAngle < 3) rukuEşik = kiyamAngle + 3;
-                if (oturmaEşik - rukuAngle < 3) oturmaEşik = rukuAngle + 3;
-                if (secdeEşik - oturmaAngle < 3) secdeEşik = oturmaAngle + 3;
-                document.getElementById('kiyam-aralık').innerText = '0° - ' + rukuEşik + '°';
-                document.getElementById('ruku-aralık').innerText = rukuEşik + '° - ' + oturmaEşik + '°';
-                document.getElementById('oturma-aralık').innerText = oturmaEşik + '° - ' + secdeEşik + '°';
-                document.getElementById('secde-aralık').innerText = secdeEşik + '° - 90°';
-            } else {
-                document.getElementById('kiyam-aralık').innerText = '0° - ?';
-                document.getElementById('ruku-aralık').innerText = '? - ?';
-                document.getElementById('oturma-aralık').innerText = '? - ?';
-                document.getElementById('secde-aralık').innerText = '? - 90°';
-            }
+            var rukuEsik = Math.round((kiyamAngle + rukuAngle) / 2);
+            var oturmaEsik = Math.round((rukuAngle + oturmaAngle) / 2);
+            var secdeEsik = Math.round((oturmaAngle + secdeAngle) / 2);
+            if (rukuEsik - kiyamAngle < 3) rukuEsik = kiyamAngle + 3;
+            if (oturmaEsik - rukuAngle < 3) oturmaEsik = rukuAngle + 3;
+            if (secdeEsik - oturmaAngle < 3) secdeEsik = oturmaAngle + 3;
+            document.getElementById('kiyam-aralık').innerText = '0° - ' + rukuEsik + '°';
+            document.getElementById('ruku-aralık').innerText = rukuEsik + '° - ' + oturmaEsik + '°';
+            document.getElementById('oturma-aralık').innerText = oturmaEsik + '° - ' + secdeEsik + '°';
+            document.getElementById('secde-aralık').innerText = secdeEsik + '° - 90°';
         }
     }
 
@@ -397,26 +350,18 @@
             alert('Lütfen Kıyam, Rükû, Oturma ve Secde pozisyonlarını sırayla kaydedin.');
             return;
         }
-        let warningEl = document.getElementById('cal-warning');
-        if (kiyamAngle > rukuAngle || rukuAngle > oturmaAngle || oturmaAngle > secdeAngle) {
-            warningEl.style.display = 'block';
-            warningEl.innerText = '❌ Açılar sıralı değil! Kıyam < Rükû < Oturma < Secde olmalı. Lütfen yeniden kalibrasyon yapın.';
-            return;
-        }
-        warningEl.style.display = 'none';
+        var rukuEsik = Math.round((kiyamAngle + rukuAngle) / 2);
+        var oturmaEsik = Math.round((rukuAngle + oturmaAngle) / 2);
+        var secdeEsik = Math.round((oturmaAngle + secdeAngle) / 2);
+        if (rukuEsik - kiyamAngle < 3) rukuEsik = kiyamAngle + 3;
+        if (oturmaEsik - rukuAngle < 3) oturmaEsik = rukuAngle + 3;
+        if (secdeEsik - oturmaAngle < 3) secdeEsik = oturmaAngle + 3;
+        if (rukuEsik >= oturmaEsik) oturmaEsik = rukuEsik + 3;
+        if (oturmaEsik >= secdeEsik) secdeEsik = oturmaEsik + 3;
 
-        let rukuEşik = Math.round((kiyamAngle + rukuAngle) / 2);
-        let oturmaEşik = Math.round((rukuAngle + oturmaAngle) / 2);
-        let secdeEşik = Math.round((oturmaAngle + secdeAngle) / 2);
-        if (rukuEşik - kiyamAngle < 3) rukuEşik = kiyamAngle + 3;
-        if (oturmaEşik - rukuAngle < 3) oturmaEşik = rukuAngle + 3;
-        if (secdeEşik - oturmaAngle < 3) secdeEşik = oturmaAngle + 3;
-        if (rukuEşik >= oturmaEşik) oturmaEşik = rukuEşik + 3;
-        if (oturmaEşik >= secdeEşik) secdeEşik = oturmaEşik + 3;
-
-        RUKU_THRESHOLD = rukuEşik;
-        OTURMA_THRESHOLD = oturmaEşik;
-        SECDE_THRESHOLD = secdeEşik;
+        RUKU_THRESHOLD = rukuEsik;
+        OTURMA_THRESHOLD = oturmaEsik;
+        SECDE_THRESHOLD = secdeEsik;
 
         document.getElementById('cal-status').innerHTML = '✅ Kalibrasyon uygulandı! Rükû: ' + RUKU_THRESHOLD + '°, Oturma: ' + OTURMA_THRESHOLD + '°, Secde: ' + SECDE_THRESHOLD + '°';
         document.getElementById('kiyam-aralık').innerText = '0° - ' + RUKU_THRESHOLD + '°';
@@ -437,7 +382,6 @@
         document.getElementById('ruku-aralık').innerText = '? - ?';
         document.getElementById('oturma-aralık').innerText = '? - ?';
         document.getElementById('secde-aralık').innerText = '? - 90°';
-        document.getElementById('cal-warning').style.display = 'none';
         RUKU_THRESHOLD = 30; OTURMA_THRESHOLD = 50; SECDE_THRESHOLD = 70;
         resetNamaz();
     }
@@ -453,8 +397,8 @@
         document.getElementById('namaz-position').innerText = '🧍';
     }
 
-    // ================= DİĞER MODÜLLER =================
-    let activityListener = false;
+    // ========== DİĞER MODÜLLER (öncekiyle aynı) ==========
+    var activityListener = false;
     function initActivitySensor() {
         if (activityListener) return;
         activityListener = true;
@@ -462,16 +406,16 @@
     }
     function handleActivity(e) {
         if (currentPage !== 'activity') return;
-        const acc = e.accelerationIncludingGravity;
+        var acc = e.accelerationIncludingGravity;
         if (!acc) return;
-        const x=acc.x||0, y=acc.y||0, z=acc.z||0;
-        const mag = Math.sqrt(x*x+y*y+z*z);
-        const norm = Math.abs(mag-9.8);
-        const bar = document.getElementById('activity-bar');
-        const status = document.getElementById('activity-status');
-        let level = Math.min(norm*2, 100);
+        var x=acc.x||0, y=acc.y||0, z=acc.z||0;
+        var mag = Math.sqrt(x*x+y*y+z*z);
+        var norm = Math.abs(mag-9.8);
+        var bar = document.getElementById('activity-bar');
+        var status = document.getElementById('activity-status');
+        var level = Math.min(norm*2, 100);
         bar.style.width = level+'%';
-        let text = '🟢 Oturma';
+        var text = '🟢 Oturma';
         if (norm > 1.5 && norm < 5) { text='🟡 Yürüme'; if(Math.random()>0.97) stepCount++; }
         else if (norm >= 5) { text='🔴 Koşma'; if(Math.random()>0.95) stepCount+=2; }
         status.innerText = text;
@@ -481,42 +425,42 @@
     function resetActivity() { stepCount=0; document.getElementById('activity-steps').innerText=0; document.getElementById('activity-cal').innerText=0; }
 
     function addFloor(val) {
-        let cur = parseInt(document.getElementById('floor-current').innerText) || 0;
+        var cur = parseInt(document.getElementById('floor-current').innerText) || 0;
         cur += val; if(cur<0) cur=0;
         document.getElementById('floor-current').innerText = cur;
         if(val>0) { todayFloors += val; document.getElementById('floor-today').innerText = todayFloors; }
         updateFloorUI();
     }
-    function simulateFloor() { const s=Math.floor(Math.random()*4)+1; addFloor(s); if(navigator.vibrate) navigator.vibrate(50); }
+    function simulateFloor() { var s=Math.floor(Math.random()*4)+1; addFloor(s); if(navigator.vibrate) navigator.vibrate(50); }
     function updateFloorUI() {
-        const cur = parseInt(document.getElementById('floor-current').innerText) || 0;
-        const pct = Math.min((cur/50)*100, 100);
+        var cur = parseInt(document.getElementById('floor-current').innerText) || 0;
+        var pct = Math.min((cur/50)*100, 100);
         document.getElementById('floor-bar').style.width = pct+'%';
     }
 
     function toggleMic() { if(isMicActive) stopMic(); else startMic(); }
     async function startMic() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
+            var stream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
             micStream = stream;
             audioContext = new (window.AudioContext||window.webkitAudioContext)();
-            const source = audioContext.createMediaStreamSource(stream);
-            const analyser = audioContext.createAnalyser();
+            var source = audioContext.createMediaStreamSource(stream);
+            var analyser = audioContext.createAnalyser();
             analyser.fftSize = 512;
             source.connect(analyser);
-            const dataArray = new Uint8Array(analyser.fftSize);
+            var dataArray = new Uint8Array(analyser.fftSize);
             isMicActive = true;
             document.getElementById('mic-btn').innerText = '⏹ Durdur';
             document.getElementById('mic-status').innerHTML = '🎤 Aktif';
             function processAudio() {
                 if(!isMicActive) return;
                 analyser.getByteTimeDomainData(dataArray);
-                let sum=0;
-                for(let i=0;i<dataArray.length;i++){ const v=(dataArray[i]-128)/128; sum+=v*v; }
-                const rms = Math.sqrt(sum/dataArray.length);
-                const level = Math.min(rms*200, 100);
+                var sum=0;
+                for(var i=0;i<dataArray.length;i++){ var v=(dataArray[i]-128)/128; sum+=v*v; }
+                var rms = Math.sqrt(sum/dataArray.length);
+                var level = Math.min(rms*200, 100);
                 document.getElementById('breath-bar').style.width = level+'%';
-                const threshold=12, now=Date.now();
+                var threshold=12, now=Date.now();
                 if(level > threshold) {
                     document.getElementById('breath-phase').innerHTML='😤 Nefes Ver';
                     document.getElementById('breath-phase').style.color='#f59e0b';
@@ -524,8 +468,8 @@
                         isInhaling=false;
                         breathCount++;
                         document.getElementById('breath-count').innerText=breathCount;
-                        const elapsed=(now-lastBreathTime)/1000;
-                        if(elapsed>0){ const rate=Math.round(60/elapsed); if(rate<30) breathRate=rate; document.getElementById('breath-rate').innerText=breathRate; }
+                        var elapsed=(now-lastBreathTime)/1000;
+                        if(elapsed>0){ var rate=Math.round(60/elapsed); if(rate<30) breathRate=rate; document.getElementById('breath-rate').innerText=breathRate; }
                         lastBreathTime=now;
                     }
                 } else {
@@ -542,7 +486,7 @@
         }
     }
     function stopMic() {
-        if(micStream) micStream.getTracks().forEach(t=>t.stop());
+        if(micStream) micStream.getTracks().forEach(function(t){t.stop();});
         if(audioContext && audioContext.state!=='closed') audioContext.close();
         isMicActive=false;
         document.getElementById('mic-btn').innerText='🎙 Mikrofon';
@@ -551,7 +495,7 @@
         document.getElementById('breath-phase').innerHTML='⏸ Bekleniyor';
     }
 
-    let alarmListener2=false, alarmCooldown=false;
+    var alarmListener2=false, alarmCooldown=false;
     function initAlarmSensor() {
         if(alarmListener2) return;
         alarmListener2=true;
@@ -559,13 +503,13 @@
     }
     function handleAlarm(e) {
         if(currentPage!=='alarm' || alarmCooldown) return;
-        const acc=e.accelerationIncludingGravity;
+        var acc=e.accelerationIncludingGravity;
         if(!acc) return;
-        const x=acc.x||0, y=acc.y||0, z=acc.z||0;
-        const mag=Math.sqrt(x*x+y*y+z*z);
-        const shake=Math.abs(mag-9.8);
-        const bar=document.getElementById('alarm-bar');
-        const pct=Math.min(shake*8,100);
+        var x=acc.x||0, y=acc.y||0, z=acc.z||0;
+        var mag=Math.sqrt(x*x+y*y+z*z);
+        var shake=Math.abs(mag-9.8);
+        var bar=document.getElementById('alarm-bar');
+        var pct=Math.min(shake*8,100);
         bar.style.width=pct+'%';
         if(shake>3.5 && !alarmTriggered) triggerAlarm();
         if(shake<1) document.getElementById('alarm-box').classList.remove('alarm-active');
@@ -576,16 +520,16 @@
         document.getElementById('alarm-status').innerHTML='🚨 ÇALINIYOR!';
         document.getElementById('alarm-status').style.color='#ff4444';
         document.getElementById('alarm-box').classList.add('alarm-active');
-        try { const ctx=new (window.AudioContext||window.webkitAudioContext)(); const osc=ctx.createOscillator(); const gain=ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value=800; gain.gain.value=0.3; osc.start(); setTimeout(()=>{osc.stop();ctx.close();},1500); } catch(e){}
+        try { var ctx=new (window.AudioContext||window.webkitAudioContext)(); var osc=ctx.createOscillator(); var gain=ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value=800; gain.gain.value=0.3; osc.start(); setTimeout(function(){osc.stop();ctx.close();},1500); } catch(e){}
         if(navigator.vibrate) navigator.vibrate([200,100,200,100,400]);
-        setTimeout(()=>{ if(alarmTriggered) resetAlarm(); },10000);
+        setTimeout(function(){ if(alarmTriggered) resetAlarm(); },10000);
     }
     function triggerAlarmTest() {
         if(alarmTriggered){ resetAlarm(); return; }
         document.getElementById('alarm-status').innerHTML='🔊 Test';
         document.getElementById('alarm-status').style.color='#facc15';
         if(navigator.vibrate) navigator.vibrate(300);
-        setTimeout(()=>{ if(!alarmTriggered){ document.getElementById('alarm-status').innerHTML='✅ Güvende'; document.getElementById('alarm-status').style.color='#4ade80'; } },1500);
+        setTimeout(function(){ if(!alarmTriggered){ document.getElementById('alarm-status').innerHTML='✅ Güvende'; document.getElementById('alarm-status').style.color='#4ade80'; } },1500);
     }
     function resetAlarm() {
         alarmTriggered=false;
@@ -594,7 +538,7 @@
         document.getElementById('alarm-box').classList.remove('alarm-active');
         document.getElementById('alarm-bar').style.width='0%';
         alarmCooldown=true;
-        setTimeout(()=>{ alarmCooldown=false; },1000);
+        setTimeout(function(){ alarmCooldown=false; },1000);
     }
 
     function refreshReports() {
@@ -602,11 +546,10 @@
         document.getElementById('report-namaz').innerText=Math.round(namazSure/60);
         document.getElementById('report-floors').innerText=todayFloors;
         document.getElementById('report-breath').innerText=breathRate;
-        const comments=["Bugün hareketliliğin normal seviyede.","Aktivite seviyen yüksek!","Nefes ritmin stabil.","Uzun süre oturmuşsun.","Namaz hareketlerin başarılı!"];
+        var comments=["Bugün hareketliliğin normal seviyede.","Aktivite seviyen yüksek!","Nefes ritmin stabil.","Uzun süre oturmuşsun.","Namaz hareketlerin başarılı!"];
         document.getElementById('ai-comment').innerText=comments[Math.floor(Math.random()*comments.length)];
     }
 
-    // ================= BAŞLANGIÇ =================
     window.addEventListener('load', function() {
         if(window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission !== 'function'){
             startListening();
@@ -622,7 +565,7 @@
     window.addEventListener('beforeunload', function() {
         if(isMicActive) stopMic();
     });
-    console.log('📡 Asistan Sensör v3.0 - Oturma eklendi');
+    console.log('📡 Asistan Sensör v3.2 - Sıralı geçiş sistemi eklendi');
 </script>
 </body>
 </html>
