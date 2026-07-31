@@ -60,6 +60,9 @@
         .calibration-box .cal-hint { font-size:12px; color:#7a8fc0; margin-top:2px; }
         .calibration-box .cal-warning { color:#f87171; font-weight:600; margin-top:4px; padding:8px; background:#2a0a0a; border-radius:8px; display:none; }
         .pos-bos { color:#f87171; }
+        .btn-start { background:linear-gradient(135deg,#22c55e,#16a34a); font-size:1.2rem; padding:16px; }
+        .btn-start:active { transform:scale(0.95); }
+        .cal-saved { color:#4ade80; font-weight:600; }
     </style>
 </head>
 <body>
@@ -69,7 +72,7 @@
         <div class="header">
             <h1>📡 Asistan Sensör</h1>
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="icon-badge">v4.1</span>
+                <span class="icon-badge">v5.0</span>
                 <a href="index.html" class="btn" style="background: #0b2b5c; padding: 6px 12px; font-size: 0.8rem; border-radius: 30px; text-decoration: none; color: white;">🕌 Vakitler</a>
             </div>
         </div>
@@ -102,6 +105,7 @@
             <div style="margin-top:8px; font-size:14px; color:#7a8fc0;">Açı: <span id="namaz-tilt">0</span>°</div>
         </div>
         <button class="btn btn-primary" onclick="manualStartSensor()">🔄 Sensörü Başlat / İzni Yenile</button>
+        <button class="btn btn-start" onclick="baslatNamaz()" id="btnNamazBaslat">🕌 Namaz Başlat</button>
         <div class="debug-panel">
             <div>📊 <strong>Ham Sensör Verileri</strong></div>
             <div>X: <span class="val" id="debug-x">0.00</span> &nbsp;|&nbsp; Y: <span class="val" id="debug-y">0.00</span> &nbsp;|&nbsp; Z: <span class="val" id="debug-z">0.00</span></div>
@@ -126,7 +130,7 @@
             <div class="cal-row"><span class="cal-label">Oturma:</span><span class="cal-value" id="cal-oturma">--°</span></div>
             <div class="cal-row"><span class="cal-label">Secde:</span><span class="cal-value" id="cal-secde">--°</span></div>
             <div style="display:flex; gap:6px; margin-top:6px;">
-                <button class="btn btn-primary" onclick="applyCalibration()" style="flex:2;">✅ Uygula</button>
+                <button class="btn btn-primary" onclick="applyCalibration()" style="flex:2;">✅ Uygula ve Kaydet</button>
                 <button class="btn btn-secondary" onclick="resetCalibration()" style="flex:1;">↺ Sıfırla</button>
             </div>
             <div style="margin-top:8px; font-size:13px; color:#7a8fc0; text-align:center;"><span id="cal-status">Henüz kalibrasyon yapılmadı.</span></div>
@@ -134,6 +138,7 @@
             <div class="cal-range">
                 <span>📏 Kıyam: <strong id="kiyam-aralık">?±5°</strong> &nbsp;|&nbsp; Rükû: <strong id="ruku-aralık">?±5°</strong> &nbsp;|&nbsp; Oturma: <strong id="oturma-aralık">?±5°</strong> &nbsp;|&nbsp; Secde: <strong id="secde-aralık">?±5°</strong></span>
             </div>
+            <div id="calSavedInfo" style="margin-top:6px; font-size:12px; color:#4ade80;"></div>
         </div>
         <div class="stat-grid">
             <div class="stat-card"><div class="label">Rekât</div><div class="value" id="namaz-rekat">0</div></div>
@@ -143,7 +148,7 @@
         </div>
         <button class="btn btn-danger" onclick="resetNamaz()">🔄 Sıfırla</button>
         <div class="status-msg">
-            📌 Sıralı geçiş: <strong>Kıyam→Rükû→Kıyam→Secde(1)→Oturma→Secde(2)→Kıyam</strong><br>
+            📌 Sıralı geçiş: <strong>Kıyam→Rükû→Kıyam→1.Secde→Oturma→2.Secde→Kıyam</strong><br>
             ⏱️ Her pozisyon <strong>1.5 sn</strong> sabit kalmalıdır.<br>
             ⚠️ Geçersiz hareketler ekranda görünmez, ses çıkmaz.
         </div>
@@ -194,13 +199,14 @@
     var KIYAM_ANGLE = 0, RUKU_ANGLE = 30, OTURMA_ANGLE = 50, SECDE_ANGLE = 70;
     var namazListener = false;
     var TOLERANCE = 5;
-    var STABILITY_TIME = 1500; // 1.5 saniye
-
-    // lastPos: son geçerli pozisyon
+    var STABILITY_TIME = 1500;
     var lastPos = 'kıyam';
-    // Geçerli pozisyon için kararlılık sayacı
     var currentDetectedPos = null;
     var stabilityStartTime = 0;
+    var namazBasladi = false;
+
+    // localStorage anahtarları
+    var STORAGE_KEY = 'namazCalibration';
 
     function showPage(id) {
         document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
@@ -210,8 +216,109 @@
         if (id === 'activity') initActivitySensor();
         if (id === 'reports') refreshReports();
         if (id === 'floor') updateFloorUI();
+        if (id === 'namaz') {
+            // Kalibrasyon kayıtlıysa göster
+            loadCalibration();
+            updateCalDisplay();
+        }
     }
 
+    // ========== KALİBRASYON KAYDETME / YÜKLEME ==========
+    function saveCalibration() {
+        if (kiyamAngle === null || rukuAngle === null || oturmaAngle === null || secdeAngle === null) return;
+        var data = {
+            kiyam: kiyamAngle,
+            ruku: rukuAngle,
+            oturma: oturmaAngle,
+            secde: secdeAngle,
+            KIYAM_ANGLE: KIYAM_ANGLE,
+            RUKU_ANGLE: RUKU_ANGLE,
+            OTURMA_ANGLE: OTURMA_ANGLE,
+            SECDE_ANGLE: SECDE_ANGLE
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        document.getElementById('calSavedInfo').innerHTML = '✅ Kalibrasyon kaydedildi.';
+    }
+
+    function loadCalibration() {
+        var saved = localStorage.getItem(STORAGE_KEY);
+        if (!saved) return;
+        try {
+            var data = JSON.parse(saved);
+            kiyamAngle = data.kiyam;
+            rukuAngle = data.ruku;
+            oturmaAngle = data.oturma;
+            secdeAngle = data.secde;
+            KIYAM_ANGLE = data.KIYAM_ANGLE;
+            RUKU_ANGLE = data.RUKU_ANGLE;
+            OTURMA_ANGLE = data.OTURMA_ANGLE;
+            SECDE_ANGLE = data.SECDE_ANGLE;
+            // Eğer değerler geçerliyse ekrana yansıt
+            if (kiyamAngle !== null && rukuAngle !== null && oturmaAngle !== null && secdeAngle !== null) {
+                document.getElementById('cal-kiyam').innerText = kiyamAngle + '°';
+                document.getElementById('cal-ruku').innerText = rukuAngle + '°';
+                document.getElementById('cal-oturma').innerText = oturmaAngle + '°';
+                document.getElementById('cal-secde').innerText = secdeAngle + '°';
+                document.getElementById('cal-status').innerHTML = '✅ Kalibrasyon yüklendi.';
+                document.getElementById('kiyam-aralık').innerText = KIYAM_ANGLE + '±5°';
+                document.getElementById('ruku-aralık').innerText = RUKU_ANGLE + '±5°';
+                document.getElementById('oturma-aralık').innerText = OTURMA_ANGLE + '±5°';
+                document.getElementById('secde-aralık').innerText = SECDE_ANGLE + '±5°';
+                document.getElementById('calSavedInfo').innerHTML = '✅ Kayıtlı kalibrasyon yüklendi.';
+                // lastPos'u kıyam yap
+                lastPos = 'kıyam';
+                updateDisplay('kıyam');
+            }
+        } catch(e) {}
+    }
+
+    function updateCalDisplay() {
+        if (kiyamAngle !== null && rukuAngle !== null && oturmaAngle !== null && secdeAngle !== null) {
+            document.getElementById('cal-kiyam').innerText = kiyamAngle + '°';
+            document.getElementById('cal-ruku').innerText = rukuAngle + '°';
+            document.getElementById('cal-oturma').innerText = oturmaAngle + '°';
+            document.getElementById('cal-secde').innerText = secdeAngle + '°';
+            document.getElementById('cal-status').innerHTML = '✅ Kalibrasyon mevcut.';
+            document.getElementById('kiyam-aralık').innerText = KIYAM_ANGLE + '±5°';
+            document.getElementById('ruku-aralık').innerText = RUKU_ANGLE + '±5°';
+            document.getElementById('oturma-aralık').innerText = OTURMA_ANGLE + '±5°';
+            document.getElementById('secde-aralık').innerText = SECDE_ANGLE + '±5°';
+        }
+    }
+
+    // ========== NAMAZ BAŞLAT ==========
+    function baslatNamaz() {
+        if (kiyamAngle === null || rukuAngle === null || oturmaAngle === null || secdeAngle === null) {
+            alert('Lütfen önce kalibrasyon yapın!');
+            return;
+        }
+        if (namazBasladi) {
+            alert('Namaz zaten başladı!');
+            return;
+        }
+        // Sensör başlatılmamışsa başlat
+        if (!namazListener) {
+            manualStartSensor();
+        }
+        namazBasladi = true;
+        lastPos = 'kıyam';
+        currentDetectedPos = null;
+        stabilityStartTime = 0;
+        // Sayaçları sıfırla
+        namazRekat = 0; namazRuku = 0; namazSecde = 0; namazSure = 0;
+        document.getElementById('namaz-rekat').innerText = 0;
+        document.getElementById('namaz-ruku').innerText = 0;
+        document.getElementById('namaz-secde').innerText = 0;
+        document.getElementById('namaz-sure').innerText = 0;
+        updateDisplay('kıyam');
+        speakText('Namaz başladı');
+        speakText('Kıyam');
+        document.getElementById('btnNamazBaslat').innerHTML = '🕌 Namaz Devam Ediyor...';
+        document.getElementById('btnNamazBaslat').style.opacity = '0.7';
+        document.getElementById('btnNamazBaslat').disabled = true;
+    }
+
+    // ========== SENSÖR ==========
     function manualStartSensor() {
         var stateEl = document.getElementById('debug-state');
         if (window.DeviceMotionEvent) {
@@ -232,7 +339,10 @@
         document.getElementById('debug-state').className = 'status-ok';
         if (namazTimer) clearInterval(namazTimer);
         namazTimer = setInterval(function() {
-            if (currentPage === 'namaz') { namazSure++; document.getElementById('namaz-sure').innerText = namazSure; }
+            if (currentPage === 'namaz' && namazBasladi) {
+                namazSure++;
+                document.getElementById('namaz-sure').innerText = namazSure;
+            }
         }, 1000);
     }
 
@@ -245,12 +355,16 @@
         window.speechSynthesis.speak(u);
     }
 
-    function getPosName(pos) {
+    function getPosName(pos, secdeNo) {
+        if (pos === 'secde') {
+            if (secdeNo === 1) return '1. Secde';
+            else if (secdeNo === 2) return '2. Secde';
+            else return 'Secde';
+        }
         switch(pos) {
             case 'kıyam': return 'Kıyam';
             case 'ruku': return 'Rükû';
             case 'oturma': return 'Oturma';
-            case 'secde': return 'Secde';
             default: return '';
         }
     }
@@ -265,16 +379,21 @@
         }
     }
 
-    function updateDisplay(pos) {
+    function updateDisplay(pos, secdeNo) {
+        var text = getPosName(pos, secdeNo);
         document.getElementById('namaz-position').innerText = getPosEmoji(pos);
-        document.getElementById('namaz-position-text').innerText = getPosName(pos);
+        document.getElementById('namaz-position-text').innerText = text;
         document.getElementById('namaz-rekat').innerText = namazRekat;
         document.getElementById('namaz-ruku').innerText = namazRuku;
         document.getElementById('namaz-secde').innerText = namazSecde;
     }
 
+    // Secde no: 1 veya 2
+    var secdeNo = 0; // 0 ise henüz secde yok
+
     function handleNamaz(event) {
         if (currentPage !== 'namaz') return;
+        if (!namazBasladi) return; // Namaz başlamadıysa hiçbir şey yapma
         var acc = event.accelerationIncludingGravity;
         if (!acc) { document.getElementById('debug-state').innerHTML = '⚠️ Veri yok'; return; }
         var x = acc.x || 0, y = acc.y || 0, z = acc.z || 0;
@@ -297,7 +416,7 @@
         document.getElementById('debug-state').className = 'status-ok';
         document.getElementById('namaz-tilt').innerText = Math.round(angle);
 
-        // 1. Hangi pozisyona denk geliyor?
+        // Pozisyon tespiti
         var detectedPos = null;
         if (Math.abs(angle - KIYAM_ANGLE) <= TOLERANCE) {
             detectedPos = 'kıyam';
@@ -307,37 +426,31 @@
             detectedPos = 'oturma';
         } else if (Math.abs(angle - SECDE_ANGLE) <= TOLERANCE) {
             detectedPos = 'secde';
-        } else {
-            detectedPos = null; // boş
         }
 
         var now = Date.now();
 
-        // 2. Eğer tespit edilen pozisyon değiştiyse veya null ise sayacı sıfırla
         if (detectedPos !== currentDetectedPos) {
             currentDetectedPos = detectedPos;
             stabilityStartTime = now;
         }
 
-        // 3. Eğer tespit edilen pozisyon null ise (boş) veya kararlılık süresi dolmadıysa hiçbir şey yapma
         if (detectedPos === null) {
             return;
         }
 
         if (now - stabilityStartTime < STABILITY_TIME) {
-            return; // henüz kararlı değil
+            return;
         }
 
-        // 4. Kararlı pozisyon elde ettik, lastPos ile karşılaştır
         var newPos = detectedPos;
 
-        // Eğer aynı pozisyonda kalmaya devam ediyorsa hiçbir şey yapma
         if (newPos === lastPos) {
             return;
         }
 
-        // 5. Geçiş kontrolü
         var gecerli = false;
+        var secdeNoLocal = 0;
 
         // Kıyam -> Rükû
         if (lastPos === 'kıyam' && newPos === 'ruku') {
@@ -350,7 +463,8 @@
         }
         // Kıyam -> Secde (1. secde)
         else if (lastPos === 'kıyam' && newPos === 'secde') {
-            namazSecde++; // 1. secde
+            namazSecde++;
+            secdeNoLocal = 1;
             gecerli = true;
         }
         // Secde -> Oturma
@@ -359,7 +473,8 @@
         }
         // Oturma -> Secde (2. secde)
         else if (lastPos === 'oturma' && newPos === 'secde') {
-            namazSecde++; // 2. secde
+            namazSecde++;
+            secdeNoLocal = 2;
             gecerli = true;
         }
         // Secde -> Kıyam (rekat bitti)
@@ -368,18 +483,24 @@
             speakText(namazRekat + '. rekat');
             gecerli = true;
         }
-        // Diğer tüm geçişler yasak (kıyam->oturma, ruku->secde, oturma->kıyam, vb.)
-        else {
-            gecerli = false;
-        }
+        // Diğer geçişler yasak
 
         if (gecerli) {
-            // lastPos'u güncelle
             lastPos = newPos;
-            // Ekranı güncelle
-            updateDisplay(lastPos);
-            // Sesli söyle (rekat zaten söylendi, pozisyonu söyle)
-            speakText(getPosName(lastPos));
+            // Secde no'yu güncelle
+            if (secdeNoLocal > 0) {
+                // Ekranda secde no göster
+                updateDisplay('secde', secdeNoLocal);
+                // Sesli söyle
+                if (secdeNoLocal === 1) speakText('1. Secde');
+                else if (secdeNoLocal === 2) speakText('2. Secde');
+            } else {
+                updateDisplay(lastPos, 0);
+                // Sesli söyle (rekat zaten söylendi)
+                if (newPos !== 'kıyam' || lastPos !== 'kıyam') {
+                    speakText(getPosName(newPos, 0));
+                }
+            }
         }
         // Geçersiz geçiş: hiçbir şey yapma
     }
@@ -422,11 +543,18 @@
         document.getElementById('ruku-aralık').innerText = RUKU_ANGLE + '±5°';
         document.getElementById('oturma-aralık').innerText = OTURMA_ANGLE + '±5°';
         document.getElementById('secde-aralık').innerText = SECDE_ANGLE + '±5°';
+        // Kaydet
+        saveCalibration();
         resetNamaz();
         lastPos = 'kıyam';
         currentDetectedPos = null;
         stabilityStartTime = 0;
-        updateDisplay('kıyam');
+        updateDisplay('kıyam', 0);
+        // Namaz başlat butonunu aktif et
+        document.getElementById('btnNamazBaslat').innerHTML = '🕌 Namaz Başlat';
+        document.getElementById('btnNamazBaslat').style.opacity = '1';
+        document.getElementById('btnNamazBaslat').disabled = false;
+        namazBasladi = false;
     }
 
     function resetCalibration() {
@@ -440,12 +568,18 @@
         document.getElementById('ruku-aralık').innerText = '?±5°';
         document.getElementById('oturma-aralık').innerText = '?±5°';
         document.getElementById('secde-aralık').innerText = '?±5°';
+        document.getElementById('calSavedInfo').innerHTML = '';
+        localStorage.removeItem(STORAGE_KEY);
         KIYAM_ANGLE = 0; RUKU_ANGLE = 30; OTURMA_ANGLE = 50; SECDE_ANGLE = 70;
         resetNamaz();
         lastPos = 'kıyam';
         currentDetectedPos = null;
         stabilityStartTime = 0;
-        updateDisplay('kıyam');
+        updateDisplay('kıyam', 0);
+        document.getElementById('btnNamazBaslat').innerHTML = '🕌 Namaz Başlat';
+        document.getElementById('btnNamazBaslat').style.opacity = '1';
+        document.getElementById('btnNamazBaslat').disabled = false;
+        namazBasladi = false;
     }
 
     function resetNamaz() {
@@ -454,6 +588,10 @@
         document.getElementById('namaz-ruku').innerText = 0;
         document.getElementById('namaz-secde').innerText = 0;
         document.getElementById('namaz-sure').innerText = 0;
+        namazBasladi = false;
+        document.getElementById('btnNamazBaslat').innerHTML = '🕌 Namaz Başlat';
+        document.getElementById('btnNamazBaslat').style.opacity = '1';
+        document.getElementById('btnNamazBaslat').disabled = false;
     }
 
     // ========== DİĞER MODÜLLER (kısa) ==========
@@ -619,16 +757,22 @@
             document.getElementById('debug-state').className = 'status-err';
         }
         updateFloorUI();
-        lastPos = 'kıyam';
-        currentDetectedPos = null;
-        stabilityStartTime = 0;
-        updateDisplay('kıyam');
+        // Kayıtlı kalibrasyonu yükle
+        loadCalibration();
+        // Eğer yüklendiyse display'i güncelle
+        if (kiyamAngle !== null && rukuAngle !== null && oturmaAngle !== null && secdeAngle !== null) {
+            lastPos = 'kıyam';
+            updateDisplay('kıyam', 0);
+            document.getElementById('btnNamazBaslat').disabled = false;
+        } else {
+            document.getElementById('btnNamazBaslat').disabled = true;
+        }
     });
 
     window.addEventListener('beforeunload', function() {
         if(isMicActive) stopMic();
     });
-    console.log('📡 Asistan Sensör v4.1 - Kararlılık 1.5sn, tam geçiş kontrolü, TTS');
+    console.log('📡 Asistan Sensör v5.0 - localStorage, 1.-2. secde, Namaz Başlat');
 </script>
 </body>
 </html>
