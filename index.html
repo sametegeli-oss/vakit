@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Namaz Vakitleri & Kıble – İnce Oklar</title>
+    <title>Namaz Vakitleri & Kıble – Pusula</title>
     <style>
         /* ===== CSS DEĞİŞKENLERİ (Light / Dark) ===== */
         :root {
@@ -159,7 +159,7 @@
     <div class="header-left"></div>
     <div class="header-center">
         <h1>🕌 Namaz Vakitleri & Kıble</h1>
-        <p>Astronomik hesaplama – İnce ok çubukları</p>
+        <p>Astronomik hesaplama – Dereceli Pusula</p>
     </div>
     <div class="header-right">
         <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle" title="Temayı değiştir">🌙</button>
@@ -304,6 +304,7 @@
                 </table>
             </div>
         </div>
+        <!-- ========== PUSULA (Dereceli) ========== -->
         <div class="qibla-guide" id="qiblaGuide">
             <div class="title">☀️ Güneş'i Referans Alarak Kıble Bulun</div>
             <div class="sub">Sarı oku sürükleyerek gerçek güneşin olduğu yöne getirin.</div>
@@ -686,7 +687,7 @@ function snoozeAlarm() {
     setTimeout(() => { alarmSnoozed = false; }, 600000);
 }
 
-// ========== KIBLE REHBERİ (İNCE OKLAR) ==========
+// ========== KIBLE REHBERİ – DERECELİ PUSULA ==========
 let sunRel = 0;
 let isDragging = false;
 
@@ -755,7 +756,7 @@ function onDragTouch(e) { e.preventDefault(); onDrag(e); }
 function endDrag(e) { isDragging = false; }
 function resetSun() { sunRel = 90; updateQiblaGuide(); }
 
-// === GÜNCELLENMİŞ FONKSİYON – İNCE OK ÇUBUKLARI ===
+// === DERECELİ PUSULA ÇİZİMİ ===
 function updateQiblaGuide() {
     const d = cachedData;
     if (!d || !d.lat) {
@@ -779,13 +780,12 @@ function updateQiblaGuide() {
 
     const cx = w/2, cy = h/2;
     const radius = 120;
-    const okUzunluk = radius + 15; // daireyi geçecek
+    const okUzunluk = radius + 15;
 
-    // Cihaz yönü (heading)
     const sunAz = d.sunAz;
     let deviceHeading = (sunRel - sunAz + 360) % 360;
 
-    // Yön etiketleri (N, E, S, W)
+    // ---- Yön etiketleri (N, E, S, W) ----
     const yonler = [
         { label: 'N', angle: 0 },
         { label: 'E', angle: 90 },
@@ -793,25 +793,53 @@ function updateQiblaGuide() {
         { label: 'W', angle: 270 }
     ];
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '14px sans-serif';
+    ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (let y of yonler) {
         const angleDeg = (y.angle + deviceHeading) % 360;
         const angleRad = toRad(angleDeg);
-        const x = cx + (radius + 18) * Math.sin(angleRad);
-        const yPos = cy - (radius + 18) * Math.cos(angleRad);
+        const x = cx + (radius + 22) * Math.sin(angleRad);
+        const yPos = cy - (radius + 22) * Math.cos(angleRad);
         ctx.fillText(y.label, x, yPos);
     }
 
-    // Dış halka
+    // ---- Derece işaretleri ve sayıları (30° aralık) ----
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let deg = 0; deg < 360; deg += 30) {
+        const angleDeg = (deg + deviceHeading) % 360;
+        const angleRad = toRad(angleDeg);
+        // Çizgi: dıştan içe
+        const outerR = radius - 5;
+        const innerR = radius - 15;
+        const x1 = cx + outerR * Math.sin(angleRad);
+        const y1 = cy - outerR * Math.cos(angleRad);
+        const x2 = cx + innerR * Math.sin(angleRad);
+        const y2 = cy - innerR * Math.cos(angleRad);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        // Sayı (daha içeride)
+        const textR = radius - 24;
+        const tx = cx + textR * Math.sin(angleRad);
+        const ty = cy - textR * Math.cos(angleRad);
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText(deg + '°', tx, ty);
+    }
+
+    // ---- Dış halka ----
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, 2*Math.PI);
     ctx.strokeStyle = '#475569';
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // ----- GÜNEŞ OKU (SARI) – ince çizgi + ok başı -----
+    // ---- Güneş oku (sarı) ----
     const gunesRad = toRad(sunRel);
     const gunesX = cx + okUzunluk * Math.sin(gunesRad);
     const gunesY = cy - okUzunluk * Math.cos(gunesRad);
@@ -838,7 +866,7 @@ function updateQiblaGuide() {
     ctx.fillStyle = '#facc15';
     ctx.fill();
 
-    // ----- KIBLE OKU (YEŞİL) – ince çizgi + ok başı -----
+    // ---- Kıble oku (yeşil) ----
     const qiblaAz = d.qiblaAz;
     let diff = (qiblaAz - sunAz + 360) % 360;
     let qiblaRel = (sunRel + diff) % 360;
@@ -867,13 +895,13 @@ function updateQiblaGuide() {
     ctx.fillStyle = '#4ade80';
     ctx.fill();
 
-    // Merkez nokta
+    // ---- Merkez nokta ----
     ctx.beginPath();
     ctx.arc(cx, cy, 4, 0, 2*Math.PI);
     ctx.fillStyle = 'white';
     ctx.fill();
 
-    // Farkı göster
+    // ---- Farkı göster ----
     let diffUser = (sunRel - qiblaRel + 360) % 360;
     if (diffUser > 180) diffUser -= 360;
     const absDiff = Math.abs(diffUser);
