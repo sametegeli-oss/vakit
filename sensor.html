@@ -68,7 +68,7 @@
         <div class="header">
             <h1>📡 Asistan Sensör</h1>
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="icon-badge">v3.7</span>
+                <span class="icon-badge">v3.8</span>
                 <a href="index.html" class="btn" style="background: #0b2b5c; padding: 6px 12px; font-size: 0.8rem; border-radius: 30px; text-decoration: none; color: white;">🕌 Vakitler</a>
             </div>
         </div>
@@ -111,7 +111,7 @@
         <div class="calibration-box">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <span style="font-weight:600; color:#aab9f0;">⚙️ Kalibrasyon (±5° tolerans)</span>
-                <span style="font-size:12px; color:#7a8fc0;">Açıları sırasıyla kaydedin</span>
+                <span style="font-size:12px; color:#7a8fc0;">4 pozisyonu sırayla kaydedin</span>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center;">
                 <button class="btn btn-success" onclick="calibrate('kiyam')" style="flex:1; min-width:70px;">🧍 Kıyam</button>
@@ -183,10 +183,10 @@
     var breathCount = 0, breathRate = 0, lastBreathTime = Date.now(), isInhaling = true;
     var alarmTriggered = false, stepCount = 0, todayFloors = 0;
     var namazRekat = 0, namazRuku = 0, namazSecde = 0, namazSure = 0;
-    var namazTimer = null, lastPos = 'kıyam';
+    var namazTimer = null, lastPos = 'bos';
     var currentAngle = 0;
     var kiyamAngle = null, rukuAngle = null, oturmaAngle = null, secdeAngle = null;
-    var RUKU_THRESHOLD = 30, OTURMA_THRESHOLD = 50, SECDE_THRESHOLD = 70;
+    var KIYAM_ANGLE = 0, RUKU_ANGLE = 30, OTURMA_ANGLE = 50, SECDE_ANGLE = 70;
     var namazListener = false;
     var TOLERANCE = 5;
 
@@ -224,6 +224,15 @@
         }, 1000);
     }
 
+    function speakText(text) {
+        if (!window.speechSynthesis) return;
+        var u = new SpeechSynthesisUtterance(text);
+        u.lang = 'tr-TR';
+        u.rate = 0.9;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(u);
+    }
+
     function handleNamaz(event) {
         if (currentPage !== 'namaz') return;
         var acc = event.accelerationIncludingGravity;
@@ -248,79 +257,82 @@
         document.getElementById('debug-state').className = 'status-ok';
         document.getElementById('namaz-tilt').innerText = Math.round(angle);
 
-        // --- YENİ POZİSYON TESPİTİ: ±5° tolerans, boşluk kontrolü ---
-        var pos = 'bos', emoji = '❓', text = 'Belirsiz';
+        // Pozisyon tespiti: ±5° tolerans
+        var pos = 'bos';
+        var emoji = '❓';
+        var text = 'Boş';
 
-        // Kıyam kontrolü
-        if (kiyamAngle !== null && angle >= kiyamAngle - TOLERANCE && angle <= kiyamAngle + TOLERANCE) {
+        if (Math.abs(angle - KIYAM_ANGLE) <= TOLERANCE) {
             pos = 'kıyam';
             emoji = '🧍';
             text = 'Kıyam';
-        }
-        // Rükû kontrolü
-        else if (rukuAngle !== null && angle >= rukuAngle - TOLERANCE && angle <= rukuAngle + TOLERANCE) {
+        } else if (Math.abs(angle - RUKU_ANGLE) <= TOLERANCE) {
             pos = 'ruku';
             emoji = '🙇';
             text = 'Rükû';
-        }
-        // Oturma kontrolü
-        else if (oturmaAngle !== null && angle >= oturmaAngle - TOLERANCE && angle <= oturmaAngle + TOLERANCE) {
+        } else if (Math.abs(angle - OTURMA_ANGLE) <= TOLERANCE) {
             pos = 'oturma';
             emoji = '🧎';
             text = 'Oturma';
-        }
-        // Secde kontrolü
-        else if (secdeAngle !== null && angle >= secdeAngle - TOLERANCE && angle <= secdeAngle + TOLERANCE) {
+        } else if (Math.abs(angle - SECDE_ANGLE) <= TOLERANCE) {
             pos = 'secde';
             emoji = '🕌';
             text = 'Secde';
+        } else {
+            pos = 'bos';
+            emoji = '❓';
+            text = 'Boş';
         }
-        // Hiçbir aralığa girmiyorsa pos = 'bos' kalır
 
         document.getElementById('namaz-position').innerText = emoji;
         document.getElementById('namaz-position-text').innerText = text;
 
-        // Sıralı geçiş kontrolü (sadece geçerli pozisyonlar için)
-        if (pos !== 'bos' && pos !== lastPos) {
-            var gecerli = false;
-            if (lastPos === 'kıyam' && pos === 'ruku') {
-                namazRuku++;
-                gecerli = true;
-            } else if (lastPos === 'ruku' && pos === 'kıyam') {
-                gecerli = true;
-            } else if (lastPos === 'kıyam' && pos === 'secde') {
-                namazSecde++;
-                gecerli = true;
-            } else if (lastPos === 'secde' && pos === 'oturma') {
-                gecerli = true;
-            } else if (lastPos === 'oturma' && pos === 'secde') {
-                namazSecde++;
-                gecerli = true;
-            } else if (lastPos === 'secde' && pos === 'kıyam') {
-                namazRekat++;
-                try {
-                    if (window.speechSynthesis) {
-                        var u = new SpeechSynthesisUtterance(namazRekat + '. rekat');
-                        u.lang = 'tr-TR';
-                        u.rate = 0.9;
-                        window.speechSynthesis.cancel();
-                        window.speechSynthesis.speak(u);
-                    }
-                } catch(e) {}
-                gecerli = true;
-            } else {
-                gecerli = false;
-            }
-            if (gecerli) {
-                lastPos = pos;
-            }
-        } else if (pos === 'bos') {
-            // Pozisyon boşsa, lastPos'u güncelleme, sayma yapma
-            // lastPos olduğu gibi kalır
+        // Eğer pozisyon değiştiyse ve boş değilse TTS ile söyle
+        if (pos !== lastPos && pos !== 'bos') {
+            speakText(text);
         }
+
+        // Sadece geçerli pozisyonlarda geçiş mantığını çalıştır
+        if (pos !== 'bos') {
+            if (pos !== lastPos) {
+                var gecerli = false;
+                if (lastPos === 'kıyam' && pos === 'ruku') {
+                    namazRuku++;
+                    gecerli = true;
+                } else if (lastPos === 'ruku' && pos === 'kıyam') {
+                    gecerli = true;
+                } else if (lastPos === 'kıyam' && pos === 'secde') {
+                    namazSecde++;
+                    gecerli = true;
+                } else if (lastPos === 'secde' && pos === 'oturma') {
+                    gecerli = true;
+                } else if (lastPos === 'oturma' && pos === 'secde') {
+                    namazSecde++;
+                    gecerli = true;
+                } else if (lastPos === 'secde' && pos === 'kıyam') {
+                    namazRekat++;
+                    speakText(namazRekat + '. rekat');
+                    gecerli = true;
+                } else {
+                    gecerli = false;
+                }
+                if (gecerli) {
+                    lastPos = pos;
+                }
+            }
+        } else {
+            // Boş pozisyon: lastPos'u güncelleme
+            // Ama eğer lastPos boş değilse ve şimdi boş olduysa, lastPos'u boş yapma, önceki geçerli pozisyon kalsın
+            // Çünkü boş geçişleri görmezden gelmek istiyoruz
+        }
+
+        // Sayaçları güncelle
+        document.getElementById('namaz-rekat').innerText = namazRekat;
+        document.getElementById('namaz-ruku').innerText = namazRuku;
+        document.getElementById('namaz-secde').innerText = namazSecde;
     }
 
-    // ========== KALİBRASYON (SIRALAMA YOK, KULLANICI AÇILARI SABİT) ==========
+    // ========== KALİBRASYON ==========
     function calibrate(pos) {
         if (currentAngle === undefined || currentAngle === null) {
             alert('Sensörü başlatın ve telefonu hareket ettirin.');
@@ -349,35 +361,16 @@
             return;
         }
 
-        // Uyarı: eğer açılar arasındaki fark 5°'den azsa, tolerans çakışabilir
-        var warningEl = document.getElementById('cal-warning');
-        var angles = [kiyamAngle, rukuAngle, oturmaAngle, secdeAngle];
-        var sorted = angles.slice().sort(function(a, b) { return a - b; });
-        var conflict = false;
-        for (var i = 0; i < sorted.length - 1; i++) {
-            if (sorted[i+1] - sorted[i] < TOLERANCE * 2) {
-                conflict = true;
-                break;
-            }
-        }
-        if (conflict) {
-            warningEl.style.display = 'block';
-            warningEl.innerText = '⚠️ Uyarı: Bazı açılar birbirine çok yakın (±5° tolerans çakışabilir). Lütfen daha belirgin açılarla kalibrasyon yapın.';
-        } else {
-            warningEl.style.display = 'none';
-        }
+        KIYAM_ANGLE = kiyamAngle;
+        RUKU_ANGLE = rukuAngle;
+        OTURMA_ANGLE = oturmaAngle;
+        SECDE_ANGLE = secdeAngle;
 
-        // Eşikleri hesapla (ortak eşik yok, tolerans aralıkları kullanılacak)
-        // Ancak eski sistemle uyum için değişkenleri güncelle
-        RUKU_THRESHOLD = rukuAngle;
-        OTURMA_THRESHOLD = oturmaAngle;
-        SECDE_THRESHOLD = secdeAngle;
-
-        document.getElementById('cal-status').innerHTML = '✅ Kalibrasyon uygulandı! Tolerans: ±' + TOLERANCE + '°';
-        document.getElementById('kiyam-aralık').innerText = kiyamAngle + '±' + TOLERANCE + '°';
-        document.getElementById('ruku-aralık').innerText = rukuAngle + '±' + TOLERANCE + '°';
-        document.getElementById('oturma-aralık').innerText = oturmaAngle + '±' + TOLERANCE + '°';
-        document.getElementById('secde-aralık').innerText = secdeAngle + '±' + TOLERANCE + '°';
+        document.getElementById('cal-status').innerHTML = '✅ Kalibrasyon uygulandı! (±5° tolerans)';
+        document.getElementById('kiyam-aralık').innerText = KIYAM_ANGLE + '±5°';
+        document.getElementById('ruku-aralık').innerText = RUKU_ANGLE + '±5°';
+        document.getElementById('oturma-aralık').innerText = OTURMA_ANGLE + '±5°';
+        document.getElementById('secde-aralık').innerText = SECDE_ANGLE + '±5°';
         resetNamaz();
     }
 
@@ -392,14 +385,13 @@
         document.getElementById('ruku-aralık').innerText = '?±5°';
         document.getElementById('oturma-aralık').innerText = '?±5°';
         document.getElementById('secde-aralık').innerText = '?±5°';
-        document.getElementById('cal-warning').style.display = 'none';
-        RUKU_THRESHOLD = 30; OTURMA_THRESHOLD = 50; SECDE_THRESHOLD = 70;
+        KIYAM_ANGLE = 0; RUKU_ANGLE = 30; OTURMA_ANGLE = 50; SECDE_ANGLE = 70;
         resetNamaz();
     }
 
     function resetNamaz() {
         namazRekat = 0; namazRuku = 0; namazSecde = 0; namazSure = 0;
-        lastPos = 'kıyam';
+        lastPos = 'bos';
         document.getElementById('namaz-rekat').innerText = 0;
         document.getElementById('namaz-ruku').innerText = 0;
         document.getElementById('namaz-secde').innerText = 0;
@@ -576,7 +568,7 @@
     window.addEventListener('beforeunload', function() {
         if(isMicActive) stopMic();
     });
-    console.log('📡 Asistan Sensör v3.7 - ±5° tolerans, boş pozisyon desteği');
+    console.log('📡 Asistan Sensör v3.8 - Tolerans ±5°, Boş pozisyon, TTS');
 </script>
 </body>
 </html>
