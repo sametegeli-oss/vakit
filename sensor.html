@@ -59,6 +59,7 @@
         .calibration-box .cal-range { font-size:13px; color:#7a8fc0; margin-top:4px; }
         .calibration-box .cal-hint { font-size:12px; color:#7a8fc0; margin-top:2px; }
         .calibration-box .cal-warning { color:#f87171; font-weight:600; margin-top:4px; padding:8px; background:#2a0a0a; border-radius:8px; display:none; }
+        .pos-bos { color:#f87171; }
     </style>
 </head>
 <body>
@@ -68,7 +69,7 @@
         <div class="header">
             <h1>📡 Asistan Sensör</h1>
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="icon-badge">v3.8</span>
+                <span class="icon-badge">v3.9</span>
                 <a href="index.html" class="btn" style="background: #0b2b5c; padding: 6px 12px; font-size: 0.8rem; border-radius: 30px; text-decoration: none; color: white;">🕌 Vakitler</a>
             </div>
         </div>
@@ -141,7 +142,10 @@
             <div class="stat-card"><div class="label">Süre (sn)</div><div class="value" id="namaz-sure">0</div></div>
         </div>
         <button class="btn btn-danger" onclick="resetNamaz()">🔄 Sıfırla</button>
-        <div class="status-msg">📌 Kalibrasyon sırası: <strong>Kıyam → Rükû → Oturma → Secde</strong> (açıların sırası önemli değil)</div>
+        <div class="status-msg">
+            📌 Sıralı geçiş: <strong>Kıyam→Rükû→Kıyam→Secde→Oturma→Secde→Kıyam</strong><br>
+            ⚠️ Kıyam'dan doğrudan Oturma olmaz. Oturma her zaman Secde'den sonra gelir.
+        </div>
     </div>
 
     <!-- Diğer modüller (kısa) -->
@@ -257,7 +261,7 @@
         document.getElementById('debug-state').className = 'status-ok';
         document.getElementById('namaz-tilt').innerText = Math.round(angle);
 
-        // Pozisyon tespiti: ±5° tolerans
+        // Pozisyon tespiti (±5° tolerans)
         var pos = 'bos';
         var emoji = '❓';
         var text = 'Boş';
@@ -278,52 +282,42 @@
             pos = 'secde';
             emoji = '🕌';
             text = 'Secde';
-        } else {
-            pos = 'bos';
-            emoji = '❓';
-            text = 'Boş';
         }
 
         document.getElementById('namaz-position').innerText = emoji;
         document.getElementById('namaz-position-text').innerText = text;
 
-        // Eğer pozisyon değiştiyse ve boş değilse TTS ile söyle
-        if (pos !== lastPos && pos !== 'bos') {
-            speakText(text);
-        }
+        // Sadece geçerli pozisyonlarda ve pozisyon değiştiğinde işlem yap
+        if (pos !== 'bos' && pos !== lastPos) {
+            var gecerli = false;
 
-        // Sadece geçerli pozisyonlarda geçiş mantığını çalıştır
-        if (pos !== 'bos') {
-            if (pos !== lastPos) {
-                var gecerli = false;
-                if (lastPos === 'kıyam' && pos === 'ruku') {
-                    namazRuku++;
-                    gecerli = true;
-                } else if (lastPos === 'ruku' && pos === 'kıyam') {
-                    gecerli = true;
-                } else if (lastPos === 'kıyam' && pos === 'secde') {
-                    namazSecde++;
-                    gecerli = true;
-                } else if (lastPos === 'secde' && pos === 'oturma') {
-                    gecerli = true;
-                } else if (lastPos === 'oturma' && pos === 'secde') {
-                    namazSecde++;
-                    gecerli = true;
-                } else if (lastPos === 'secde' && pos === 'kıyam') {
-                    namazRekat++;
-                    speakText(namazRekat + '. rekat');
-                    gecerli = true;
-                } else {
-                    gecerli = false;
-                }
-                if (gecerli) {
-                    lastPos = pos;
-                }
+            // Geçerli geçişler (namaz sırası)
+            if (lastPos === 'kıyam' && pos === 'ruku') {
+                namazRuku++;
+                gecerli = true;
+            } else if (lastPos === 'ruku' && pos === 'kıyam') {
+                gecerli = true;
+            } else if (lastPos === 'kıyam' && pos === 'secde') {
+                namazSecde++; // 1. secde
+                gecerli = true;
+            } else if (lastPos === 'secde' && pos === 'oturma') {
+                gecerli = true;
+            } else if (lastPos === 'oturma' && pos === 'secde') {
+                namazSecde++; // 2. secde
+                gecerli = true;
+            } else if (lastPos === 'secde' && pos === 'kıyam') {
+                namazRekat++;
+                speakText(namazRekat + '. rekat');
+                gecerli = true;
             }
-        } else {
-            // Boş pozisyon: lastPos'u güncelleme
-            // Ama eğer lastPos boş değilse ve şimdi boş olduysa, lastPos'u boş yapma, önceki geçerli pozisyon kalsın
-            // Çünkü boş geçişleri görmezden gelmek istiyoruz
+            // Diğer tüm geçişler geçersiz (ör: kıyam->oturma, ruku->secde, oturma->kıyam vb.)
+
+            if (gecerli) {
+                lastPos = pos;
+                // Sadece geçerli pozisyon değişiminde TTS ile söyle (boş değil zaten)
+                speakText(text);
+            }
+            // Geçersiz geçişlerde lastPos güncellenmez, sıralama korunur
         }
 
         // Sayaçları güncelle
@@ -568,7 +562,7 @@
     window.addEventListener('beforeunload', function() {
         if(isMicActive) stopMic();
     });
-    console.log('📡 Asistan Sensör v3.8 - Tolerans ±5°, Boş pozisyon, TTS');
+    console.log('📡 Asistan Sensör v3.9 - Sıralı geçişler, Kıyam->Oturma yasak');
 </script>
 </body>
 </html>
